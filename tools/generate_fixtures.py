@@ -22,6 +22,8 @@ def main() -> None:
             pa.field("temperature_c", pa.int32(), nullable=True),
             pa.field("active", pa.bool_(), nullable=True),
             pa.field("score", pa.float64(), nullable=True),
+            pa.field("sequence", pa.int64(), nullable=True),
+            pa.field("payload", pa.binary(), nullable=True),
         ]
     )
     batch = pa.record_batch(
@@ -30,6 +32,8 @@ def main() -> None:
             pa.array([31, 19, None, 27], pa.int32()),
             pa.array([True, None, False, True], pa.bool_()),
             pa.array([9.5, None, -1.25, 7.0], pa.float64()),
+            pa.array([4_294_967_296, None, -9_223_372_036_854_775_000, 7], pa.int64()),
+            pa.array([b"\x00\xff", None, b"MoonArrow", b""], pa.binary()),
         ],
         schema=schema,
     )

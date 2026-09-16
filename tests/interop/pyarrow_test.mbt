@@ -9,12 +9,14 @@ async test "reads a PyArrow-generated IPC stream" {
     fail("PyArrow stream should decode: \{Repr(error)}")
   }
   let schema = stream.schema()
-  assert_eq(schema.len(), 4)
+  assert_eq(schema.len(), 6)
   assert_eq(schema.fields(), [
     @types.Field::new("city", @types.Utf8, nullable=false),
     @types.Field::new("temperature_c", @types.Int32),
     @types.Field::new("active", @types.Boolean),
     @types.Field::new("score", @types.Float64),
+    @types.Field::new("sequence", @types.Int64),
+    @types.Field::new("payload", @types.Binary),
   ])
   assert_eq(stream.batch_count(), 1)
   guard stream.batch(0) is Some(batch) else { fail("batch should exist") }
@@ -41,4 +43,22 @@ async test "reads a PyArrow-generated IPC stream" {
     fail("score should be float64")
   }
   assert_eq(score.to_options(), [Some(9.5), None, Some(-1.25), Some(7.0)])
+  guard batch.column_by_name("sequence") is Some(@record_batch.Int64(sequence)) else {
+    fail("sequence should be int64")
+  }
+  assert_eq(sequence.to_options(), [
+    Some(4_294_967_296L),
+    None,
+    Some(-9_223_372_036_854_775_000L),
+    Some(7L),
+  ])
+  guard batch.column_by_name("payload") is Some(@record_batch.Binary(payload)) else {
+    fail("payload should be binary")
+  }
+  assert_eq(payload.to_options(), [
+    Some(b"\x00\xff"),
+    None,
+    Some(b"MoonArrow"),
+    Some(b""),
+  ])
 }
