@@ -29,6 +29,23 @@ async fn main {
       for index in 0..<stream.batch_count() {
         let batch = stream.batch(index).unwrap()
         println("  batch \{index}: \{batch.row_count()} rows")
+        let preview_count = if batch.row_count() < 3 {
+          batch.row_count()
+        } else {
+          3
+        }
+        for row in 0..<preview_count {
+          println("    row \{row}")
+          for column_index in 0..<batch.column_count() {
+            let field = schema.field(column_index).unwrap()
+            let value = batch
+              .column(column_index)
+              .unwrap()
+              .value_text(row)
+              .unwrap()
+            println("      \{field.name}: \{value}")
+          }
+        }
       }
     }
   }
