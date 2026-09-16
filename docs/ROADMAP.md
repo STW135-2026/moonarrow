@@ -4,7 +4,7 @@
 
 - [x] Logical schema and fields
 - [x] LSB-first validity bitmap
-- [x] Nullable Int32, Float64, Boolean, and UTF-8 arrays
+- [x] Nullable Int32, Int64, Float64, Boolean, UTF-8, and Binary arrays
 - [x] Record batch validation
 - [x] Filter, take, comparison, and aggregation kernels
 - [x] Multi-target CI and runnable example
@@ -21,8 +21,9 @@
 
 ## M3 — Type coverage
 
-- [ ] Int8/16/64 and unsigned integers
-- [ ] Float32, Binary and LargeUtf8
+- [x] Int64 and Binary
+- [ ] Int8/16 and unsigned integers
+- [ ] Float32 and LargeUtf8
 - [ ] List, Struct and Dictionary arrays
 - [ ] Timestamp, Date and Duration
 

@@ -27,13 +27,22 @@ moon run cmd/ipc_inspect --target native
 ```text
 MoonArrow IPC inspector
 file: fixtures/pyarrow-basic.arrows
-fields: 4
+fields: 6
   city: utf8 (required)
   temperature_c: int32 (nullable)
   active: bool (nullable)
   score: float64 (nullable)
+  sequence: int64 (nullable)
+  payload: binary (nullable)
 record batches: 1
   batch 0: 4 rows
+    row 0
+      city: Shenzhen
+      temperature_c: 31
+      active: true
+      score: 9.5
+      sequence: 4294967296
+      payload: <binary: 2 bytes>
 ```
 
 这里重点说明：MoonArrow 解码的是 Arrow 的 FlatBuffers 元数据和列式 body buffers，
@@ -77,6 +86,6 @@ moon test --target all --deny-warn
 ## 下一次最有价值的迭代
 
 1. 实现 IPC writer，并由 PyArrow 反向读取 MoonArrow 产物，形成双向互操作证据。
-2. 增加 Int64、Binary、List、Struct 和 Dictionary 类型。
+2. 增加更多整数宽度、List、Struct 和 Dictionary 类型。
 3. 增加 sort、group-by/hash aggregate 与表达式 AST。
 4. 做浏览器 Wasm demo：本地加载 Arrow 文件、筛选并绘图，全程不上传数据。

@@ -5,10 +5,12 @@
 首个可验证版本已经完成，不只是设计稿：
 
 - 可读取 PyArrow 25 生成的真实 Arrow IPC Stream。
-- 支持平面 `Int32`、`Float64`、`Boolean`、`Utf8` Schema 与 RecordBatch。
+- 支持平面 `Boolean`、`Int32`、`Int64`、`Float64`、`Utf8`、`Binary`
+  Schema 与 RecordBatch。
 - 正确处理 validity bitmap、bit-packed Boolean、字符串 offsets 和空值。
 - 提供 DataFrame 投影、过滤、limit、sum、mean API。
-- 提供 IPC 检查器、PyArrow 独立夹具和 Native/JS/Wasm/WasmGC 测试。
+- 提供带数据预览的 IPC 检查器、PyArrow 独立夹具和
+  Native/JS/Wasm/WasmGC 测试。
 - 对越界 FlatBuffers、截断消息、非法 buffer、offset、validity 和 UTF-8
   返回结构化错误。
 
@@ -30,10 +32,13 @@ MoonArrow 是使用 MoonBit 实现的 Apache Arrow 兼容列式内存、IPC 与�
 ## 核心功能
 
 - Arrow 风格 Schema、Field、Array、Bitmap 和 RecordBatch。
-- Nullable Primitive、Boolean、UTF-8、Binary 及嵌套数组。
-- Arrow IPC File/Stream 读写与跨语言兼容测试。
-- 过滤、投影、聚合、排序和 Join 等列式计算内核。
-- JS、Wasm、Native 多后端以及 CLI/浏览器演示。
+- 已完成 Nullable Boolean、Int32、Int64、Float64、UTF-8 与 Binary；后续
+  扩展更多整数宽度与嵌套数组。
+- 已完成 Arrow IPC Stream 读取与跨语言兼容测试；IPC 写入和 File 容器属于
+  下一里程碑。
+- 已完成过滤、投影和基础聚合；排序与 Join 属于后续计算里程碑。
+- 已完成 JS、Wasm、WasmGC、Native 多后端与 Native CLI 演示；浏览器界面属于
+  后续生态集成工作。
 
 ## 技术路径
 
@@ -55,3 +60,12 @@ MoonBit 的代数数据类型和模式匹配用于表达 Arrow 类型与计算�
 实现依据 Apache Arrow 公开格式规范，并参考 Apache Arrow Rust、C++、JavaScript
 与 PyArrow 的公开行为及测试数据。所有参考来源和兼容测试生成方式将在仓库中记录；
 项目采用 Apache-2.0 许可证。
+
+## MVP 验收方式
+
+仓库提供 `docs/MVP-CHECKLIST.zh-CN.md`，列出一条命令质量检查、两个可运行演示、
+PyArrow 夹具再生成方式、当前边界与逐项证据。GitHub Actions 会在每次推送后执行
+格式检查、接口生成、四后端检查与测试，并实际运行 DataFrame 和 IPC CLI 演示。
+
+开发过程通过独立功能提交与 `docs/DEVELOPMENT_LOG.zh-CN.md` 持续记录，避免把所有
+工作压缩成单次不可追踪提交。

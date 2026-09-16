@@ -13,7 +13,7 @@ moon check --target all --deny-warn
 moon test --target all --deny-warn
 ```
 
-当前测试基线：Wasm、WasmGC、JavaScript 各 40 项，Native 41 项；Native
+当前测试基线：Wasm、WasmGC、JavaScript 各 41 项，Native 42 项；Native
 额外执行真实文件系统上的 PyArrow 互操作测试。
 
 ## 可运行演示
