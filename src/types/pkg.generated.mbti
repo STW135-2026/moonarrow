@@ -1,0 +1,47 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "STW135-2026/moonarrow/src/types"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub(all) enum DataType {
+  Boolean
+  Int32
+  Int64
+  Float64
+  Utf8
+  Binary
+} derive(Eq, @debug.Debug)
+pub fn DataType::name(Self) -> String
+
+pub(all) struct Field {
+  name : String
+  data_type : DataType
+  nullable : Bool
+} derive(Eq, @debug.Debug)
+pub fn Field::new(String, DataType, nullable? : Bool) -> Self
+
+pub struct Schema {
+  fields : Array[Field]
+} derive(Eq, @debug.Debug)
+pub fn Schema::field(Self, Int) -> Field?
+pub fn Schema::field_index(Self, String) -> Int?
+pub fn Schema::fields(Self) -> Array[Field]
+pub fn Schema::is_empty(Self) -> Bool
+pub fn Schema::len(Self) -> Int
+pub fn Schema::new(Array[Field]) -> Result[Self, SchemaError]
+
+pub(all) enum SchemaError {
+  EmptyFieldName(Int)
+  DuplicateFieldName(String)
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

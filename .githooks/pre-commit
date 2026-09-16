@@ -1,0 +1,5 @@
+#!/bin/sh
+
+moon fmt --check
+moon check --target all
+moon test --target all

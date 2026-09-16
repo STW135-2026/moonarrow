@@ -1,0 +1,72 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "STW135-2026/moonarrow/src/array"
+
+import {
+  "STW135-2026/moonarrow/src/bitmap",
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub(all) enum ArrayError {
+  IndexOutOfBounds(Int, Int)
+  InvalidSlice(Int, Int, Int)
+  LengthMismatch(Int, Int)
+} derive(Eq, @debug.Debug)
+
+pub struct BoolArray {
+  values : @bitmap.Bitmap
+  validity : @bitmap.Bitmap?
+} derive(Eq, @debug.Debug)
+pub fn BoolArray::from_options(Array[Bool?]) -> Self
+pub fn BoolArray::from_values(Array[Bool]) -> Self
+pub fn BoolArray::get(Self, Int) -> Result[Bool?, ArrayError]
+pub fn BoolArray::len(Self) -> Int
+pub fn BoolArray::null_count(Self) -> Int
+pub fn BoolArray::slice(Self, Int, Int) -> Result[Self, ArrayError]
+pub fn BoolArray::to_options(Self) -> Array[Bool?]
+
+pub struct Float64Array {
+  values : Array[Double]
+  validity : @bitmap.Bitmap?
+} derive(Eq, @debug.Debug)
+pub fn Float64Array::from_options(Array[Double?]) -> Self
+pub fn Float64Array::from_values(Array[Double]) -> Self
+pub fn Float64Array::get(Self, Int) -> Result[Double?, ArrayError]
+pub fn Float64Array::len(Self) -> Int
+pub fn Float64Array::null_count(Self) -> Int
+pub fn Float64Array::slice(Self, Int, Int) -> Result[Self, ArrayError]
+pub fn Float64Array::to_options(Self) -> Array[Double?]
+
+pub struct Int32Array {
+  values : Array[Int]
+  validity : @bitmap.Bitmap?
+} derive(Eq, @debug.Debug)
+pub fn Int32Array::from_options(Array[Int?]) -> Self
+pub fn Int32Array::from_values(Array[Int]) -> Self
+pub fn Int32Array::get(Self, Int) -> Result[Int?, ArrayError]
+pub fn Int32Array::len(Self) -> Int
+pub fn Int32Array::null_count(Self) -> Int
+pub fn Int32Array::slice(Self, Int, Int) -> Result[Self, ArrayError]
+pub fn Int32Array::to_options(Self) -> Array[Int?]
+
+pub struct Utf8Array {
+  offsets : Array[Int]
+  data : Array[Byte]
+  validity : @bitmap.Bitmap?
+} derive(Eq, @debug.Debug)
+pub fn Utf8Array::data_length(Self) -> Int
+pub fn Utf8Array::from_options(Array[String?]) -> Self
+pub fn Utf8Array::from_values(Array[String]) -> Self
+pub fn Utf8Array::get(Self, Int) -> Result[String?, ArrayError]
+pub fn Utf8Array::len(Self) -> Int
+pub fn Utf8Array::null_count(Self) -> Int
+pub fn Utf8Array::slice(Self, Int, Int) -> Result[Self, ArrayError]
+pub fn Utf8Array::to_options(Self) -> Array[String?]
+
+// Type aliases
+
+// Traits

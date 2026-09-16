@@ -1,0 +1,44 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "STW135-2026/moonarrow/src/dataframe"
+
+import {
+  "STW135-2026/moonarrow/src/array",
+  "STW135-2026/moonarrow/src/record_batch",
+  "STW135-2026/moonarrow/src/types",
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub struct DataFrame {
+  batch : @record_batch.RecordBatch
+} derive(Eq, @debug.Debug)
+pub fn DataFrame::column(Self, String) -> @record_batch.Column?
+pub fn DataFrame::column_count(Self) -> Int
+pub fn DataFrame::filter(Self, @array.BoolArray) -> Result[Self, DataFrameError]
+pub fn DataFrame::filter_by_bool(Self, String) -> Result[Self, DataFrameError]
+pub fn DataFrame::from_record_batch(@record_batch.RecordBatch) -> Self
+pub fn DataFrame::limit(Self, Int) -> Result[Self, DataFrameError]
+pub fn DataFrame::mean_int32(Self, String) -> Result[Double?, DataFrameError]
+pub fn DataFrame::record_batch(Self) -> @record_batch.RecordBatch
+pub fn DataFrame::row_count(Self) -> Int
+pub fn DataFrame::schema(Self) -> @types.Schema
+pub fn DataFrame::select(Self, Array[String]) -> Result[Self, DataFrameError]
+pub fn DataFrame::sum_int32(Self, String) -> Result[Int64?, DataFrameError]
+pub fn DataFrame::where_int32_gt(Self, String, Int) -> Result[Self, DataFrameError]
+
+pub(all) enum DataFrameError {
+  ColumnNotFound(String)
+  ExpectedColumnType(String, @types.DataType, @types.DataType)
+  InvalidLimit(Int)
+  Array(@array.ArrayError)
+  Schema(@types.SchemaError)
+  RecordBatch(@record_batch.RecordBatchError)
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

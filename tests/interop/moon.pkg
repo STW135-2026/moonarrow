@@ -1,0 +1,9 @@
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/fs",
+  "STW135-2026/moonarrow/src/ipc",
+  "STW135-2026/moonarrow/src/record_batch",
+  "STW135-2026/moonarrow/src/types",
+} for "test"
+
+supported_targets = "+native"

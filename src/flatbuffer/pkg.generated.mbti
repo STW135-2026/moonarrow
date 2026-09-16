@@ -1,0 +1,58 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "STW135-2026/moonarrow/src/flatbuffer"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub(all) enum FlatbufferError {
+  OutOfBounds(Int, Int, Int)
+  InvalidRoot(Int)
+  InvalidTable(Int)
+  InvalidUtf8(Int, Int)
+} derive(Eq, @debug.Debug)
+
+pub struct Reader {
+  data : Bytes
+}
+pub fn Reader::len(Self) -> Int
+pub fn Reader::new(Bytes) -> Self
+pub fn Reader::read_i16(Self, Int) -> Result[Int, FlatbufferError]
+pub fn Reader::read_i32(Self, Int) -> Result[Int, FlatbufferError]
+pub fn Reader::read_i64(Self, Int) -> Result[Int64, FlatbufferError]
+pub fn Reader::read_u16(Self, Int) -> Result[Int, FlatbufferError]
+pub fn Reader::read_u64(Self, Int) -> Result[UInt64, FlatbufferError]
+pub fn Reader::read_u8(Self, Int) -> Result[Int, FlatbufferError]
+pub fn Reader::root_table(Self) -> Result[Table, FlatbufferError]
+pub fn Reader::slice(Self, Int, Int) -> Result[Bytes, FlatbufferError]
+
+pub struct Table {
+  reader : Reader
+  pos : Int
+}
+pub fn Table::bool(Self, Int, Bool) -> Result[Bool, FlatbufferError]
+pub fn Table::i16(Self, Int, Int) -> Result[Int, FlatbufferError]
+pub fn Table::i32(Self, Int, Int) -> Result[Int, FlatbufferError]
+pub fn Table::i64(Self, Int, Int64) -> Result[Int64, FlatbufferError]
+pub fn Table::string(Self, Int) -> Result[String?, FlatbufferError]
+pub fn Table::table(Self, Int) -> Result[Self?, FlatbufferError]
+pub fn Table::u8(Self, Int, Int) -> Result[Int, FlatbufferError]
+pub fn Table::vector(Self, Int) -> Result[Vector?, FlatbufferError]
+
+pub struct Vector {
+  reader : Reader
+  start : Int
+  len : Int
+}
+pub fn Vector::len(Self) -> Int
+pub fn Vector::struct_i64(Self, Int, Int, Int) -> Result[Int64, FlatbufferError]
+pub fn Vector::table(Self, Int) -> Result[Table, FlatbufferError]
+
+// Type aliases
+
+// Traits
