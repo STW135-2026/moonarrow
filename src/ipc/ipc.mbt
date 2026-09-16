@@ -234,10 +234,14 @@ fn decode_field(field : @flatbuffer.Table) -> Result[@types.Field, IpcError] {
         Ok(value) => value
         Err(error) => return Err(error)
       }
-      if bit_width != 32 || !signed {
+      if !signed {
         return Err(UnsupportedInteger(bit_width, signed))
       }
-      @types.Int32
+      match bit_width {
+        32 => @types.Int32
+        64 => @types.Int64
+        _ => return Err(UnsupportedInteger(bit_width, signed))
+      }
     }
     3 => {
       let precision = match lift_fb(type_table.i16(0, 0)) {
@@ -249,6 +253,7 @@ fn decode_field(field : @flatbuffer.Table) -> Result[@types.Field, IpcError] {
       }
       @types.Float64
     }
+    4 => @types.Binary
     5 => @types.Utf8
     6 => @types.Boolean
     _ => return Err(UnsupportedType(type_id))
@@ -383,7 +388,7 @@ fn expected_buffer_count(schema : @types.Schema) -> Int {
   for field in schema.fields() {
     count = count +
       (match field.data_type {
-        @types.Utf8 => 3
+        @types.Utf8 | @types.Binary => 3
         _ => 2
       })
   }
@@ -441,6 +446,19 @@ fn read_i32_at(
 }
 
 ///|
+fn read_i64_at(
+  data : Bytes,
+  offset : Int,
+  buffer_index : Int,
+) -> Result[Int64, IpcError] {
+  match @flatbuffer.Reader::new(data).read_i64(offset) {
+    Ok(value) => Ok(value)
+    Err(_) =>
+      Err(InvalidBuffer(buffer_index, offset.to_int64(), 8L, data.length()))
+  }
+}
+
+///|
 fn decode_int32(
   body : Bytes,
   node : FieldNode,
@@ -490,6 +508,58 @@ fn decode_int32(
     )
   }
   Ok(@record_batch.Int32(@array.Int32Array::from_options(decoded)))
+}
+
+///|
+fn decode_int64(
+  body : Bytes,
+  node : FieldNode,
+  validity_region : BufferRegion,
+  values_region : BufferRegion,
+  column : Int,
+  buffer_index : Int,
+) -> Result[@record_batch.Column, IpcError] {
+  let validity = match buffer_slice(body, validity_region, buffer_index) {
+    Ok(value) => value
+    Err(error) => return Err(error)
+  }
+  let values = match buffer_slice(body, values_region, buffer_index + 1) {
+    Ok(value) => value
+    Err(error) => return Err(error)
+  }
+  if node.length > values.length() / 8 {
+    return Err(
+      InvalidBuffer(
+        buffer_index + 1,
+        values_region.offset.to_int64(),
+        values_region.length.to_int64(),
+        body.length(),
+      ),
+    )
+  }
+  let decoded : Array[Int64?] = []
+  let mut observed_nulls = 0
+  for row in 0..<node.length {
+    let valid = match validity_at(validity, row, node.null_count, column) {
+      Ok(value) => value
+      Err(error) => return Err(error)
+    }
+    if valid {
+      match read_i64_at(values, row * 8, buffer_index + 1) {
+        Ok(value) => decoded.push(Some(value))
+        Err(error) => return Err(error)
+      }
+    } else {
+      decoded.push(None)
+      observed_nulls = observed_nulls + 1
+    }
+  }
+  if observed_nulls != node.null_count {
+    return Err(
+      InvalidNode(column, node.length.to_int64(), node.null_count.to_int64()),
+    )
+  }
+  Ok(@record_batch.Int64(@array.Int64Array::from_options(decoded)))
 }
 
 ///|
@@ -615,6 +685,95 @@ fn decode_utf8_value(
   } else {
     Ok(decoded)
   }
+}
+
+///|
+fn decode_binary_value(
+  data : Bytes,
+  start : Int,
+  end : Int,
+  column : Int,
+) -> Result[Bytes, IpcError] {
+  if start < 0 || end < start || end > data.length() {
+    return Err(InvalidOffsets(column, start, end))
+  }
+  guard data.get_view(start~, end~) is Some(view) else {
+    return Err(InvalidOffsets(column, start, end))
+  }
+  Ok(view.to_owned())
+}
+
+///|
+fn decode_binary(
+  body : Bytes,
+  node : FieldNode,
+  validity_region : BufferRegion,
+  offsets_region : BufferRegion,
+  data_region : BufferRegion,
+  column : Int,
+  buffer_index : Int,
+) -> Result[@record_batch.Column, IpcError] {
+  let validity = match buffer_slice(body, validity_region, buffer_index) {
+    Ok(value) => value
+    Err(error) => return Err(error)
+  }
+  let offsets = match buffer_slice(body, offsets_region, buffer_index + 1) {
+    Ok(value) => value
+    Err(error) => return Err(error)
+  }
+  let data = match buffer_slice(body, data_region, buffer_index + 2) {
+    Ok(value) => value
+    Err(error) => return Err(error)
+  }
+  if offsets.length() < 4 || node.length > offsets.length() / 4 - 1 {
+    return Err(
+      InvalidBuffer(
+        buffer_index + 1,
+        offsets_region.offset.to_int64(),
+        offsets_region.length.to_int64(),
+        body.length(),
+      ),
+    )
+  }
+  let first = match read_i32_at(offsets, 0, buffer_index + 1) {
+    Ok(value) => value
+    Err(error) => return Err(error)
+  }
+  if first != 0 {
+    return Err(InvalidOffsets(column, 0, first))
+  }
+  let decoded : Array[Bytes?] = []
+  let mut previous = first
+  let mut observed_nulls = 0
+  for row in 0..<node.length {
+    let end = match read_i32_at(offsets, (row + 1) * 4, buffer_index + 1) {
+      Ok(value) => value
+      Err(error) => return Err(error)
+    }
+    if end < previous || end > data.length() {
+      return Err(InvalidOffsets(column, previous, end))
+    }
+    let valid = match validity_at(validity, row, node.null_count, column) {
+      Ok(value) => value
+      Err(error) => return Err(error)
+    }
+    if valid {
+      match decode_binary_value(data, previous, end, column) {
+        Ok(value) => decoded.push(Some(value))
+        Err(error) => return Err(error)
+      }
+    } else {
+      decoded.push(None)
+      observed_nulls = observed_nulls + 1
+    }
+    previous = end
+  }
+  if observed_nulls != node.null_count {
+    return Err(
+      InvalidNode(column, node.length.to_int64(), node.null_count.to_int64()),
+    )
+  }
+  Ok(@record_batch.Binary(@array.BinaryArray::from_options(decoded)))
 }
 
 ///|
@@ -759,6 +918,15 @@ fn decode_record_batch(
           column_index,
           buffer_index,
         )
+      @types.Int64 =>
+        decode_int64(
+          message.body,
+          node,
+          buffers[buffer_index],
+          buffers[buffer_index + 1],
+          column_index,
+          buffer_index,
+        )
       @types.Boolean =>
         decode_bool(
           message.body,
@@ -787,15 +955,15 @@ fn decode_record_batch(
           column_index,
           buffer_index,
         )
-      other =>
-        Err(
-          UnsupportedType(
-            match other {
-              @types.Int64 => 101
-              @types.Binary => 102
-              _ => 0
-            },
-          ),
+      @types.Binary =>
+        decode_binary(
+          message.body,
+          node,
+          buffers[buffer_index],
+          buffers[buffer_index + 1],
+          buffers[buffer_index + 2],
+          column_index,
+          buffer_index,
         )
     }
     match decoded {
@@ -803,7 +971,10 @@ fn decode_record_batch(
       Err(error) => return Err(error)
     }
     buffer_index = buffer_index +
-      (if field.data_type == @types.Utf8 { 3 } else { 2 })
+      (match field.data_type {
+        @types.Utf8 | @types.Binary => 3
+        _ => 2
+      })
   }
   @record_batch.RecordBatch::new(schema, columns).map_err(error => {
     RecordBatch(error)
