@@ -23,7 +23,7 @@ keywords = [ "arrow", "columnar", "dataframe", "analytics" ]
 
 preferred_target = "js"
 
-description = "Apache Arrow-compatible columnar memory and compute primitives for MoonBit"
+description = "Apache Arrow IPC reader and columnar compute primitives for MoonBit"
 
 import {
   "moonbitlang/async@0.21.3",

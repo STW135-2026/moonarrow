@@ -12,9 +12,15 @@ import pyarrow as pa
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "fixtures"
+EXPECTED_PYARROW_VERSION = "25.0.1"
 
 
 def main() -> None:
+    if pa.__version__ != EXPECTED_PYARROW_VERSION:
+        raise RuntimeError(
+            "fixture generation requires PyArrow "
+            f"{EXPECTED_PYARROW_VERSION}, found {pa.__version__}"
+        )
     FIXTURES.mkdir(exist_ok=True)
     schema = pa.schema(
         [
