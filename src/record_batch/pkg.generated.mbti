@@ -24,6 +24,7 @@ pub fn Column::data_type(Self) -> @types.DataType
 pub fn Column::len(Self) -> Int
 pub fn Column::null_count(Self) -> Int
 pub fn Column::slice(Self, Int, Int) -> Result[Self, @array.ArrayError]
+pub fn Column::value_text(Self, Int) -> Result[String, @array.ArrayError]
 
 pub struct RecordBatch {
   schema : @types.Schema

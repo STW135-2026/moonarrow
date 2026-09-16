@@ -117,3 +117,17 @@ test "record batch filtering covers int64 and binary columns" {
   }
   assert_eq(payload.to_options(), [Some(b"a"), Some(b"c")])
 }
+
+///|
+test "columns render safe diagnostic values" {
+  let int64_column = @record_batch.Int64(
+    @array.Int64Array::from_options([Some(4_294_967_296L), None]),
+  )
+  assert_eq(int64_column.value_text(0), Ok("4294967296"))
+  assert_eq(int64_column.value_text(1), Ok("null"))
+  let binary_column = @record_batch.Binary(
+    @array.BinaryArray::from_values([b"\x00\xff"]),
+  )
+  assert_eq(binary_column.value_text(0), Ok("<binary: 2 bytes>"))
+  assert_true(binary_column.value_text(1) is Err(@array.IndexOutOfBounds(1, 1)))
+}

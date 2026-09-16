@@ -45,6 +45,71 @@ pub fn Column::data_type(self : Column) -> @types.DataType {
 }
 
 ///|
+/// Render one value for diagnostics and CLI previews. Binary payloads are not
+/// decoded as text; their byte length is reported instead.
+pub fn Column::value_text(
+  self : Column,
+  index : Int,
+) -> Result[String, @array.ArrayError] {
+  match self {
+    Binary(column) =>
+      column
+      .get(index)
+      .map(value => {
+        match value {
+          None => "null"
+          Some(bytes) => "<binary: \{bytes.length()} bytes>"
+        }
+      })
+    Bool(column) =>
+      column
+      .get(index)
+      .map(value => {
+        match value {
+          None => "null"
+          Some(value) => "\{value}"
+        }
+      })
+    Int32(column) =>
+      column
+      .get(index)
+      .map(value => {
+        match value {
+          None => "null"
+          Some(value) => "\{value}"
+        }
+      })
+    Int64(column) =>
+      column
+      .get(index)
+      .map(value => {
+        match value {
+          None => "null"
+          Some(value) => "\{value}"
+        }
+      })
+    Float64(column) =>
+      column
+      .get(index)
+      .map(value => {
+        match value {
+          None => "null"
+          Some(value) => "\{value}"
+        }
+      })
+    Utf8(column) =>
+      column
+      .get(index)
+      .map(value => {
+        match value {
+          None => "null"
+          Some(value) => value
+        }
+      })
+  }
+}
+
+///|
 pub fn Column::slice(
   self : Column,
   offset : Int,
