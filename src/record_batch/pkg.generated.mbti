@@ -13,8 +13,10 @@ import {
 
 // Types and methods
 pub(all) enum Column {
+  Binary(@array.BinaryArray)
   Bool(@array.BoolArray)
   Int32(@array.Int32Array)
+  Int64(@array.Int64Array)
   Float64(@array.Float64Array)
   Utf8(@array.Utf8Array)
 } derive(Eq, @debug.Debug)

@@ -72,3 +72,48 @@ test "column slices preserve values and nulls" {
   }
   assert_eq(sliced.to_options(), [None, Some(3)])
 }
+
+///|
+test "record batches validate int64 and binary columns" {
+  let schema = @types.Schema::new([
+    @types.Field::new("sequence", @types.Int64, nullable=false),
+    @types.Field::new("payload", @types.Binary),
+  ]).unwrap()
+  let batch = @record_batch.RecordBatch::new(schema, [
+    @record_batch.Int64(@array.Int64Array::from_values([4_294_967_296L, 7L])),
+    @record_batch.Binary(
+      @array.BinaryArray::from_options([Some(b"\x00\xff"), None]),
+    ),
+  ]).unwrap()
+  assert_eq(batch.row_count(), 2)
+  assert_true(batch.column_by_name("sequence") is Some(@record_batch.Int64(_)))
+  assert_true(batch.column_by_name("payload") is Some(@record_batch.Binary(_)))
+}
+
+///|
+test "record batch filtering covers int64 and binary columns" {
+  let schema = @types.Schema::new([
+    @types.Field::new("sequence", @types.Int64),
+    @types.Field::new("payload", @types.Binary),
+  ]).unwrap()
+  let batch = @record_batch.RecordBatch::new(schema, [
+    @record_batch.Int64(
+      @array.Int64Array::from_options([Some(1L), None, Some(3L)]),
+    ),
+    @record_batch.Binary(@array.BinaryArray::from_values([b"a", b"b", b"c"])),
+  ]).unwrap()
+  let predicate = @array.BoolArray::from_values([true, false, true])
+  guard batch.filter(predicate) is Ok(filtered) else {
+    fail("filter should support every implemented column type")
+  }
+  guard filtered.column_by_name("sequence")
+    is Some(@record_batch.Int64(sequence)) else {
+    fail("sequence should be int64")
+  }
+  assert_eq(sequence.to_options(), [Some(1L), Some(3L)])
+  guard filtered.column_by_name("payload")
+    is Some(@record_batch.Binary(payload)) else {
+    fail("payload should be binary")
+  }
+  assert_eq(payload.to_options(), [Some(b"a"), Some(b"c")])
+}

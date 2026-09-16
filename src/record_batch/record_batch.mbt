@@ -1,7 +1,9 @@
 ///|
 pub(all) enum Column {
+  Binary(@array.BinaryArray)
   Bool(@array.BoolArray)
   Int32(@array.Int32Array)
+  Int64(@array.Int64Array)
   Float64(@array.Float64Array)
   Utf8(@array.Utf8Array)
 } derive(Eq, Debug)
@@ -9,8 +11,10 @@ pub(all) enum Column {
 ///|
 pub fn Column::len(self : Column) -> Int {
   match self {
+    Binary(column) => column.len()
     Bool(column) => column.len()
     Int32(column) => column.len()
+    Int64(column) => column.len()
     Float64(column) => column.len()
     Utf8(column) => column.len()
   }
@@ -19,8 +23,10 @@ pub fn Column::len(self : Column) -> Int {
 ///|
 pub fn Column::null_count(self : Column) -> Int {
   match self {
+    Binary(column) => column.null_count()
     Bool(column) => column.null_count()
     Int32(column) => column.null_count()
+    Int64(column) => column.null_count()
     Float64(column) => column.null_count()
     Utf8(column) => column.null_count()
   }
@@ -29,8 +35,10 @@ pub fn Column::null_count(self : Column) -> Int {
 ///|
 pub fn Column::data_type(self : Column) -> @types.DataType {
   match self {
+    Binary(_) => @types.Binary
     Bool(_) => @types.Boolean
     Int32(_) => @types.Int32
+    Int64(_) => @types.Int64
     Float64(_) => @types.Float64
     Utf8(_) => @types.Utf8
   }
@@ -43,8 +51,10 @@ pub fn Column::slice(
   length : Int,
 ) -> Result[Column, @array.ArrayError] {
   match self {
+    Binary(column) => column.slice(offset, length).map(value => Binary(value))
     Bool(column) => column.slice(offset, length).map(value => Bool(value))
     Int32(column) => column.slice(offset, length).map(value => Int32(value))
+    Int64(column) => column.slice(offset, length).map(value => Int64(value))
     Float64(column) => column.slice(offset, length).map(value => Float64(value))
     Utf8(column) => column.slice(offset, length).map(value => Utf8(value))
   }
@@ -132,10 +142,14 @@ pub fn RecordBatch::filter(
   let columns : Array[Column] = []
   for column in self.columns {
     let filtered = match column {
+      Binary(values) =>
+        @compute.filter_binary(values, predicate).map(values => Binary(values))
       Bool(values) =>
         @compute.filter_bool(values, predicate).map(values => Bool(values))
       Int32(values) =>
         @compute.filter_int32(values, predicate).map(values => Int32(values))
+      Int64(values) =>
+        @compute.filter_int64(values, predicate).map(values => Int64(values))
       Float64(values) =>
         @compute.filter_float64(values, predicate).map(values => Float64(values))
       Utf8(values) =>
