@@ -45,6 +45,35 @@ test "filter validates mask length" {
 }
 
 ///|
+test "int64 comparison and filtering preserve nulls" {
+  let values = @array.Int64Array::from_options([
+    Some(4_294_967_296L),
+    None,
+    Some(-1L),
+  ])
+  let predicate = @compute.greater_than_int64(values, 0L)
+  assert_eq(predicate.to_options(), [Some(true), None, Some(false)])
+  assert_eq(
+    @compute.filter_int64(values, predicate).map(value => value.to_options()),
+    Ok([Some(4_294_967_296L)]),
+  )
+}
+
+///|
+test "binary filtering keeps arbitrary payloads" {
+  let values = @array.BinaryArray::from_options([
+    Some(b"\x00\xff"),
+    None,
+    Some(b"Moon"),
+  ])
+  let predicate = @array.BoolArray::from_values([true, false, true])
+  assert_eq(
+    @compute.filter_binary(values, predicate).map(value => value.to_options()),
+    Ok([Some(b"\x00\xff"), Some(b"Moon")]),
+  )
+}
+
+///|
 test "take validates every index" {
   let values = @array.Int32Array::from_options([Some(10), None, Some(30)])
   guard @compute.take_int32(values, [2, 0, 1]) is Ok(taken) else {

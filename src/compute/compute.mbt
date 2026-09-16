@@ -17,6 +17,23 @@ pub fn filter_int32(
 }
 
 ///|
+pub fn filter_int64(
+  input : @array.Int64Array,
+  predicate : @array.BoolArray,
+) -> Result[@array.Int64Array, @array.ArrayError] {
+  if predicate.len() != input.len() {
+    return Err(@array.LengthMismatch(predicate.len(), input.len()))
+  }
+  let output : Array[Int64?] = []
+  for i in 0..<input.len() {
+    if predicate.get(i).unwrap() == Some(true) {
+      output.push(input.get(i).unwrap())
+    }
+  }
+  Ok(@array.Int64Array::from_options(output))
+}
+
+///|
 pub fn filter_float64(
   input : @array.Float64Array,
   predicate : @array.BoolArray,
@@ -65,6 +82,23 @@ pub fn filter_utf8(
     }
   }
   Ok(@array.Utf8Array::from_options(output))
+}
+
+///|
+pub fn filter_binary(
+  input : @array.BinaryArray,
+  predicate : @array.BoolArray,
+) -> Result[@array.BinaryArray, @array.ArrayError] {
+  if predicate.len() != input.len() {
+    return Err(@array.LengthMismatch(predicate.len(), input.len()))
+  }
+  let output : Array[Bytes?] = []
+  for i in 0..<input.len() {
+    if predicate.get(i).unwrap() == Some(true) {
+      output.push(input.get(i).unwrap())
+    }
+  }
+  Ok(@array.BinaryArray::from_options(output))
 }
 
 ///|
@@ -122,6 +156,16 @@ pub fn min_max_int32(input : @array.Int32Array) -> (Int, Int)? {
 pub fn greater_than_int32(
   input : @array.Int32Array,
   threshold : Int,
+) -> @array.BoolArray {
+  @array.BoolArray::from_options(
+    input.to_options().map(value => value.map(v => v > threshold)),
+  )
+}
+
+///|
+pub fn greater_than_int64(
+  input : @array.Int64Array,
+  threshold : Int64,
 ) -> @array.BoolArray {
   @array.BoolArray::from_options(
     input.to_options().map(value => value.map(v => v > threshold)),
