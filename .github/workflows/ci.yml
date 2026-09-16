@@ -8,8 +8,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: hustcer/setup-moonbit@v1
+      - run: moon update
       - run: moon fmt --check
       - run: moon info
       - run: moon check --target all --deny-warn
