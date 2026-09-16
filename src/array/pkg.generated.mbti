@@ -17,6 +17,20 @@ pub(all) enum ArrayError {
   LengthMismatch(Int, Int)
 } derive(Eq, @debug.Debug)
 
+pub struct BinaryArray {
+  offsets : Array[Int]
+  data : Array[Byte]
+  validity : @bitmap.Bitmap?
+} derive(Eq, @debug.Debug)
+pub fn BinaryArray::data_length(Self) -> Int
+pub fn BinaryArray::from_options(Array[Bytes?]) -> Self
+pub fn BinaryArray::from_values(Array[Bytes]) -> Self
+pub fn BinaryArray::get(Self, Int) -> Result[Bytes?, ArrayError]
+pub fn BinaryArray::len(Self) -> Int
+pub fn BinaryArray::null_count(Self) -> Int
+pub fn BinaryArray::slice(Self, Int, Int) -> Result[Self, ArrayError]
+pub fn BinaryArray::to_options(Self) -> Array[Bytes?]
+
 pub struct BoolArray {
   values : @bitmap.Bitmap
   validity : @bitmap.Bitmap?
