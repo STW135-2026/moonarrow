@@ -117,6 +117,21 @@ pub fn DataFrame::where_int32_gt(
 }
 
 ///|
+pub fn DataFrame::where_int64_gt(
+  self : DataFrame,
+  name : String,
+  threshold : Int64,
+) -> Result[DataFrame, DataFrameError] {
+  match self.column(name) {
+    None => Err(ColumnNotFound(name))
+    Some(@record_batch.Int64(values)) =>
+      self.filter(@compute.greater_than_int64(values, threshold))
+    Some(column) =>
+      Err(ExpectedColumnType(name, @types.Int64, column.data_type()))
+  }
+}
+
+///|
 /// Return at most the first `count` rows without changing column types.
 pub fn DataFrame::limit(
   self : DataFrame,

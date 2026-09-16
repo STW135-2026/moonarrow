@@ -64,3 +64,31 @@ test "boolean filters treat null as false" {
   }
   assert_eq(city.to_options(), [Some("Shenzhen")])
 }
+
+///|
+test "dataframe filters int64 while preserving binary payloads" {
+  let schema = @types.Schema::new([
+    @types.Field::new("sequence", @types.Int64),
+    @types.Field::new("payload", @types.Binary),
+  ]).unwrap()
+  let batch = @record_batch.RecordBatch::new(schema, [
+    @record_batch.Int64(
+      @array.Int64Array::from_options([
+        Some(4_294_967_296L),
+        None,
+        Some(9_223_372_036_854_775_000L),
+      ]),
+    ),
+    @record_batch.Binary(
+      @array.BinaryArray::from_values([b"small", b"null", b"large"]),
+    ),
+  ]).unwrap()
+  let filtered = @dataframe.DataFrame::from_record_batch(batch)
+    .where_int64_gt("sequence", 5_000_000_000L)
+    .unwrap()
+  assert_eq(filtered.row_count(), 1)
+  guard filtered.column("payload") is Some(@record_batch.Binary(payload)) else {
+    fail("payload should be binary")
+  }
+  assert_eq(payload.to_options(), [Some(b"large")])
+}

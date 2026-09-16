@@ -29,6 +29,7 @@ pub fn DataFrame::schema(Self) -> @types.Schema
 pub fn DataFrame::select(Self, Array[String]) -> Result[Self, DataFrameError]
 pub fn DataFrame::sum_int32(Self, String) -> Result[Int64?, DataFrameError]
 pub fn DataFrame::where_int32_gt(Self, String, Int) -> Result[Self, DataFrameError]
+pub fn DataFrame::where_int64_gt(Self, String, Int64) -> Result[Self, DataFrameError]
 
 pub(all) enum DataFrameError {
   ColumnNotFound(String)
