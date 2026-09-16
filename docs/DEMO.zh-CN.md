@@ -10,7 +10,7 @@ Native、JavaScript 与 WebAssembly 上复用同一套计算代码。
 
 ### 1. 证明输入来自外部生态
 
-展示 `tools/generate_fixtures.py`：Schema 和 RecordBatch 由 PyArrow 25 创建，产物
+展示 `tools/generate_fixtures.py`：Schema 和 RecordBatch 由 PyArrow 25.0.1 创建，产物
 是提交在 `fixtures/pyarrow-basic.arrows` 的二进制 IPC 流，不是 MoonArrow 自己生成
 后再自己读取。
 

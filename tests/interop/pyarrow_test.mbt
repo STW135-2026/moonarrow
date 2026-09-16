@@ -62,3 +62,48 @@ async test "reads a PyArrow-generated IPC stream" {
     Some(b""),
   ])
 }
+
+///|
+async test "rejects a truncated PyArrow stream" {
+  let bytes = @fs.read_file("fixtures/pyarrow-basic.arrows").binary()
+  guard bytes.get_view(start=0, end=bytes.length() - 1) is Some(prefix) else {
+    fail("fixture should contain a non-empty stream")
+  }
+  assert_true(@ipc.read_stream(prefix.to_owned()) is Err(_))
+}
+
+///|
+async test "rejects invalid UTF-8 in a PyArrow string column" {
+  let bytes = @fs.read_file("fixtures/pyarrow-basic.arrows").binary()
+  let corrupted = bytes.to_array()
+  let city_offset = find_bytes(corrupted, b"Shenzhen")
+  guard city_offset is Some(offset) else {
+    fail("fixture should contain the first city value")
+  }
+  corrupted[offset] = b'\xff'
+  assert_true(
+    @ipc.read_stream(Bytes::from_array(corrupted))
+    is Err(@ipc.InvalidUtf8(_, _)),
+  )
+}
+
+///|
+fn find_bytes(haystack : Array[Byte], needle : Bytes) -> Int? {
+  let target = needle.to_array()
+  let mut start = 0
+  while start + target.length() <= haystack.length() {
+    let mut matched = true
+    let mut index = 0
+    while index < target.length() {
+      if haystack[start + index] != target[index] {
+        matched = false
+      }
+      index = index + 1
+    }
+    if matched {
+      return Some(start)
+    }
+    start = start + 1
+  }
+  None
+}

@@ -34,10 +34,12 @@ reader first validates message framing, then interprets FlatBuffers metadata,
 then validates every field node and body buffer before constructing arrays. It
 does not expose unchecked offsets to higher layers.
 
-The first reader slice supports flat `Int32`, `Float64`, `Boolean`, and `Utf8`
-schemas. A committed PyArrow-produced fixture verifies schema order, null
-semantics, boolean bit packing, variable-width offsets, and floating-point body
-decoding independently of MoonArrow.
+The current reader supports flat `Boolean`, `Int32`, `Int64`, `Float64`, `Utf8`,
+and `Binary` schemas. A committed PyArrow-produced fixture verifies schema
+order, null semantics, boolean bit packing, variable-width offsets, integer
+widths, binary payloads, and floating-point body decoding independently of
+MoonArrow. Decoded primitive values are materialized into MoonBit arrays; the
+current MVP does not claim zero-copy Arrow C Data Interface compatibility.
 
 ## Error model
 

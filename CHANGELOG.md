@@ -13,6 +13,13 @@ All notable changes to MoonArrow are recorded here.
 - PyArrow 25 interoperability coverage for six logical types.
 - Row previews in the native IPC inspector.
 - Reproducible MVP acceptance checklist and end-to-end CI smoke demos.
+- Negative interoperability tests for truncated streams and invalid UTF-8.
+
+### Changed
+
+- Pin fixture generation and documentation to PyArrow 25.0.1.
+- Clarify that IPC reading materializes MoonBit arrays and that writing and
+  zero-copy C Data Interface support are future work.
 
 ## 0.1.0 - 2026-09-16
 

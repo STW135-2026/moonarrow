@@ -16,14 +16,14 @@
 
 ## 项目定位
 
-MoonArrow 是使用 MoonBit 实现的 Apache Arrow 兼容列式内存、IPC 与计算基础库。
-项目希望让 MoonBit 程序能够高效处理结构化数据，并与 Python、Rust、JavaScript
-和数据库生态交换 Arrow 数据。
+MoonArrow 是使用 MoonBit 实现的 Apache Arrow 数据模型兼容列式数组、IPC 读取与
+计算基础库。项目希望让 MoonBit 程序能够高效处理结构化数据，并与 Python、Rust、
+JavaScript 和数据库生态交换 Arrow 数据。
 
 ## 使用场景
 
-1. MoonBit 数据程序读取 PyArrow、Polars 或数据库生成的 Arrow IPC 数据，并进行
-   无需逐行反序列化的列式计算。
+1. MoonBit 数据程序读取 PyArrow、Polars 或数据库生成的 Arrow IPC 数据，无需先
+   转换为 JSON 或逐行对象即可进行列式计算。
 2. 浏览器应用通过 MoonBit/Wasm 加载 Arrow 数据，在本地完成筛选、聚合和可视化
    前处理，避免上传敏感数据。
 3. 数据库、AI 推理及 ETL 工具以 MoonArrow 的 RecordBatch 作为统一交换层，减少
@@ -42,9 +42,10 @@ MoonArrow 是使用 MoonBit 实现的 Apache Arrow 兼容列式内存、IPC 与�
 
 ## 技术路径
 
-项目采用自底向上的分层结构：首先实现并验证 bitmap、buffer 和 array 的物理布局，
+项目采用自底向上的分层结构：首先实现并验证 bitmap、IPC buffer 和 array 的布局语义，
 再构建 schema、record batch 与 compute kernels，随后依据 Apache Arrow IPC 规范实现
-FlatBuffers 元数据和消息帧，最终使用 PyArrow 生成的固定夹具进行双向兼容测试。
+FlatBuffers 元数据和消息帧，最终使用 PyArrow 生成的固定夹具进行跨语言读取兼容
+测试。反向写入与双向互操作属于后续里程碑。
 
 MoonBit 的代数数据类型和模式匹配用于表达 Arrow 类型与计算表达式；统一工具链和
 多后端能力使同一套列式核心能够运行于 Native、JavaScript 和 WebAssembly。

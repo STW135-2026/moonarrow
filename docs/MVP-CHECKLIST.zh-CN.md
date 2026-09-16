@@ -13,7 +13,7 @@ moon check --target all --deny-warn
 moon test --target all --deny-warn
 ```
 
-当前测试基线：Wasm、WasmGC、JavaScript 各 41 项，Native 42 项；Native
+当前测试基线：Wasm、WasmGC、JavaScript 各 41 项，Native 44 项；Native
 额外执行真实文件系统上的 PyArrow 互操作测试。
 
 ## 可运行演示
@@ -34,7 +34,7 @@ moon run cmd/ipc_inspect --target native
 ```
 
 检查器读取 `fixtures/pyarrow-basic.arrows`，输出 Schema、RecordBatch 数量与前三行
-数据预览。该二进制文件由固定版本 PyArrow 25 生成，不是 MoonArrow 自己写入后
+数据预览。该二进制文件由固定版本 PyArrow 25.0.1 生成，不是 MoonArrow 自己写入后
 再自行读取。
 
 ## 已完成的 MVP 范围
@@ -48,7 +48,7 @@ moon run cmd/ipc_inspect --target native
 | 计算内核 | filter、take、比较、sum、mean、min/max |
 | DataFrame | select、filter、limit、Int32/Int64 条件查询与聚合 |
 | Arrow IPC Stream | framing、FlatBuffers metadata、Schema 与 RecordBatch 解码 |
-| 跨语言互操作 | PyArrow 25 生成 6 种类型的固定测试夹具 |
+| 跨语言互操作 | PyArrow 25.0.1 生成 6 种类型的固定测试夹具 |
 | 多后端 | Native、JavaScript、WebAssembly、WasmGC |
 | 自动化质量门禁 | GitHub Actions 执行格式、接口、检查、测试与 CLI 冒烟演示 |
 
