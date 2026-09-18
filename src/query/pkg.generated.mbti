@@ -1,0 +1,65 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "STW135-2026/moonquery/src/query"
+
+import {
+  "moonbitlang/core/debug",
+  "shunge/arrow",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub(all) enum Predicate {
+  BoolIsTrue(String)
+  Int32Equal(String, Int)
+  Int32GreaterThan(String, Int)
+  Int32LessThan(String, Int)
+  Int64Equal(String, Int64)
+  Int64GreaterThan(String, Int64)
+  Utf8Equal(String, String)
+  And(Predicate, Predicate)
+  Or(Predicate, Predicate)
+  Not(Predicate)
+} derive(Eq, @debug.Debug)
+pub fn Predicate::and_also(Self, Self) -> Self
+pub fn Predicate::negate(Self) -> Self
+pub fn Predicate::or_else(Self, Self) -> Self
+
+pub struct Query {
+  source : @arrow.RecordBatch
+  steps : Array[QueryStep]
+} derive(@debug.Debug)
+pub fn Query::execute(Self) -> Result[@arrow.RecordBatch, QueryError]
+pub fn Query::explain(Self) -> String
+pub fn Query::filter(Self, Predicate) -> Self
+pub fn Query::group_by_utf8_sum_int32(Self, String, String, sum_alias? : String, count_alias? : String) -> Self
+pub fn Query::inner_join(Self, @arrow.RecordBatch, String, String) -> Self
+pub fn Query::limit(Self, Int) -> Self
+pub fn Query::project(Self, Array[String]) -> Self
+pub fn Query::scan(@arrow.RecordBatch) -> Self
+pub fn Query::sort_by(Self, String, descending? : Bool) -> Self
+
+pub(all) enum QueryError {
+  ColumnNotFound(String)
+  DuplicateColumn(String)
+  EmptyProjection
+  InvalidLimit(Int)
+  TypeMismatch(String, String, String)
+  UnsupportedOperation(String)
+  InvalidBatch
+} derive(Eq, @debug.Debug)
+
+pub(all) enum QueryStep {
+  Filter(Predicate)
+  Project(Array[String])
+  Limit(Int)
+  Sort(String, Bool)
+  GroupUtf8SumInt32(String, String, String, String)
+  InnerJoin(@arrow.RecordBatch, String, String)
+} derive(@debug.Debug)
+
+// Type aliases
+
+// Traits

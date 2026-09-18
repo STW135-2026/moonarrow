@@ -1,50 +1,53 @@
-# MoonArrow architecture
+# MoonQuery architecture
 
-MoonArrow follows the same dependency direction as a production columnar
-engine. Lower layers know nothing about schemas, record batches, or user
-interfaces.
+MoonQuery has one dependency direction:
 
 ```text
-types      bitmap
-   \         /
-      array
-        |           flatbuffer
-     compute             |
-        |               ipc
-  record_batch <---------+
-        |
-    dataframe
-        |
- CLI / JS / Wasm adapters
+Arrow IPC bytes
+      │
+      ▼
+shunge/arrow  ── Schema / Column / RecordBatch / IPC validation
+      │
+      ▼
+MoonQuery     ── Predicate / QueryStep / Query / execution
+      │
+      ▼
+shunge/arrow  ── validated RecordBatch / optional IPC output
 ```
 
-## Invariants
+The project intentionally contains no Arrow binary-format layer.
 
-- Validity and boolean buffers use Arrow's least-significant-bit-first layout.
-- Nullable primitive arrays store a physical value for every logical slot.
-- UTF-8 arrays use 32-bit-style offsets plus one contiguous byte buffer.
-- A record batch has one schema field per column and equal column lengths.
-- Non-nullable fields reject columns containing nulls.
-- Compute kernels propagate input nulls; null filter predicates select no row.
+## Logical plan
 
-## IPC boundary
+`Query::scan` stores an Arrow `RecordBatch`. Builder methods append immutable
+logical steps without executing them. `Query::explain` renders the same ordered
+steps that `Query::execute` evaluates.
 
-IPC is a separate layer rather than an ad-hoc serializer inside the arrays. The
-reader first validates message framing, then interprets FlatBuffers metadata,
-then validates every field node and body buffer before constructing arrays. It
-does not expose unchecked offsets to higher layers.
+Implemented steps:
 
-The current reader supports flat `Boolean`, `Int32`, `Int64`, `Float64`, `Utf8`,
-and `Binary` schemas. A committed PyArrow-produced fixture verifies schema
-order, null semantics, boolean bit packing, variable-width offsets, integer
-widths, binary payloads, and floating-point body decoding independently of
-MoonArrow. Decoded primitive values are materialized into MoonBit arrays; the
-current MVP does not claim zero-copy Arrow C Data Interface compatibility.
+- `Filter(Predicate)`
+- `Project(Array[String])`
+- `Limit(Int)`
+- `Sort(String, Bool)`
+- `GroupUtf8SumInt32(...)`
+- `InnerJoin(RecordBatch, left_key, right_key)`
 
-## Error model
+## Null semantics
 
-Malformed input and unsupported-but-valid Arrow features are kept distinct.
-`IpcError` reports truncated envelopes, invalid tables, offsets and validity
-buffers separately from unsupported types, nested fields, dictionary encoding,
-and big-endian schemas. This is important for safely accepting untrusted data
-and for extending format coverage without weakening validation.
+Predicates return `Bool?`. `AND`, `OR`, and `NOT` use SQL-style three-valued
+logic. Filter keeps only `Some(true)`; both `Some(false)` and `None` are
+discarded. Grouping keeps a null-key group, SUM ignores null inputs and returns
+null for an all-null group, and COUNT counts rows. Join never matches null keys.
+
+## Validation boundary
+
+Every operator constructs output columns compatible with `shunge/arrow` and
+then calls `RecordBatch::new`. A malformed result becomes `InvalidBatch`; it is
+never returned as a successful query result.
+
+## Current algorithm choices
+
+Correctness and deterministic multi-target behavior are the MVP priorities.
+Sort is stable insertion sort, grouping uses stable linear group lookup, and
+inner join uses nested loops. These choices are stated rather than hidden.
+Hash-based operators and benchmarks belong to the next milestone.

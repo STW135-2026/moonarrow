@@ -1,44 +1,35 @@
-# Roadmap
+# MoonQuery roadmap
 
-## M1 — Columnar memory core
+## M1 — Distinct query MVP
 
-- [x] Logical schema and fields
-- [x] LSB-first validity bitmap
-- [x] Nullable Int32, Int64, Float64, Boolean, UTF-8, and Binary arrays
-- [x] Record batch validation
-- [x] Filter, take, comparison, and aggregation kernels
-- [x] Multi-target CI and runnable example
+- [x] Depend on `shunge/arrow` instead of implementing Arrow IPC.
+- [x] Typed predicates with three-valued null semantics.
+- [x] Lazy logical plan and explain output.
+- [x] Filter, project, limit and stable sort.
+- [x] UTF-8 group by with Int32 SUM and row COUNT.
+- [x] Deterministic inner join for common key types.
+- [x] Four-target tests and Arrow IPC handoff demo.
 
-## M2 — Arrow IPC stream
+## M2 — General expression engine
 
-- [x] Buffer alignment and little-endian helpers
-- [x] Bounds-checked FlatBuffers metadata reader
-- [x] Schema and record-batch message reader
-- [x] IPC stream reader
-- [x] PyArrow interoperability fixture and test
-- [ ] FlatBuffers metadata writer
-- [ ] IPC stream writer and bidirectional interoperability test
+- [ ] Scalar expression tree for arithmetic and aliases.
+- [ ] Comparisons for more numeric types.
+- [ ] Generic aggregate definitions and multiple aggregate expressions.
+- [ ] Schema inference before execution.
 
-## M3 — Type coverage
+## M3 — Performance
 
-- [x] Int64 and Binary
-- [ ] Int8/16 and unsigned integers
-- [ ] Float32 and LargeUtf8
-- [ ] List, Struct and Dictionary arrays
-- [ ] Timestamp, Date and Duration
+- [ ] Hash aggregation with deterministic output ordering.
+- [ ] Hash join with build/probe-side selection.
+- [ ] Chunked execution and configurable batch size.
+- [ ] Reproducible benchmarks with dataset, hardware and toolchain recorded.
 
-## M4 — Compute and tabular API
+## M4 — Optimizer and applications
 
-- [ ] Vectorized arithmetic and boolean kernels
-- [ ] Sort, hash aggregate and join
-- [ ] Chunked arrays and tables
-- [ ] Expression AST and lazy query plan
-- [x] Eager projection, Boolean filtering, integer predicates, limit, and basic
-      aggregation facade
+- [ ] Predicate and projection pushdown inside MoonQuery plans.
+- [ ] Constant folding and redundant-step elimination.
+- [ ] Browser/Wasm offline data explorer using the same query core.
+- [ ] One documented downstream integration.
 
-## M5 — Ecosystem integration
-
-- [ ] CSV/JSONL adapters
-- [ ] JavaScript and browser package
-- [ ] Parquet reader
-- [ ] Benchmarks against reference implementations
+Arrow format coverage remains outside this roadmap and follows the capabilities
+of `shunge/arrow`.

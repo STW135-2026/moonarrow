@@ -1,44 +1,27 @@
-# MoonArrow 开发记录
+# MoonQuery 开发记录
 
-本记录用于说明每次提交对应的可验证增量。完整细节以 Git 历史、测试和源码为准。
+## 2026-09-18：重新划定项目边界
 
-## 2026-09-16：建立首个可运行基线
+审核指出原 MoonArrow 与已维护的 `shunge/arrow` 高度重叠。复核后确认，对方模块已经
+提供 Arrow Schema/Column/RecordBatch、IPC Stream/File 读写、格式校验和多后端
+测试，因此继续扩展同类 IPC 功能没有足够独立价值。
 
-- `a2575ab`：建立类型、bitmap、array、RecordBatch、compute、DataFrame、
-  FlatBuffers、IPC reader、CLI、PyArrow fixture 与多后端测试基线。
-- `fc9db2e`：修复干净 CI 环境中的 MoonBit registry 更新步骤，使流水线成功复现。
+本次改造不是更换文案，而是进行了代码级转型：
 
-初版功能已经可运行，但开发内容集中在单个大提交里，无法清晰体现持续开发过程。
-后续改为每个功能增量单独提交，并在提交前运行对应测试。
+1. 项目更名为 MoonQuery。
+2. `moon.mod` 增加并锁定 `shunge/arrow@0.1.0`。
+3. 删除当前树中的自研 IPC、FlatBuffers、bitmap、array、RecordBatch 和相关夹具。
+4. 新增独立查询包 `src/query`。
+5. 实现谓词、三值逻辑、查询计划、Explain、Filter、Project、Limit、Sort、Group By、
+   SUM、COUNT 和 Inner Join。
+6. 新演示使用公开依赖完成 Arrow IPC 输出和回读。
+7. 重写 README、申报书、架构、差异化说明、演示和验收文档。
 
-## 2026-09-16：补全 Arrow 类型与查询链路
+旧实现仍保留在 Git 历史中供审计，但不属于 MoonQuery 当前代码或申报成果。
 
-- `3386a37`：新增 nullable Int64 列及边界测试。
-- `09a4430`：新增 Arrow offsets + data 布局的 Binary 列及测试。
-- `3df005a`：新增 Int64/Binary filter kernel 和 Int64 条件表达式。
-- `948dda2`：让 RecordBatch 完整接入两种新列类型。
-- `ee68058`：让 DataFrame 支持 Int64 条件过滤并保留 Binary payload。
+## 验证原则
 
-## 2026-09-16：补强跨语言证据和用户体验
-
-- `3bf4b51`：IPC Schema/RecordBatch reader 支持 Int64 与 Binary。
-- `e404b89`：由 PyArrow 25 重新生成 6 类型夹具，并加入值级互操作断言。
-- `3128f8b`：为所有列类型提供安全的诊断值渲染。
-- `a0e3975`：IPC inspector 输出前三行预览，评审无需阅读源码即可验证数据。
-- `dfffcd2`：CI 在检查与测试后实际运行 DataFrame 和 IPC 两个 MVP 演示。
-- `34e1843`：增加一页式 MVP 验收清单。
-
-## 2026-09-16：端到端复核
-
-- 统一 PyArrow 生成器、开发依赖和文档版本，并在生成器中校验版本，确保夹具可复现。
-- 补充截断 IPC Stream 与非法 UTF-8 的负向互操作测试，验证外部输入不会被静默接受。
-- 修正文档中遗留的类型范围和“双向互操作”表述，明确当前只提供 IPC 读取，写入与
-  zero-copy C Data Interface 属于后续工作。
-
-## 持续开发约定
-
-1. 每个提交只承载一个可说明的功能、测试、修复或文档增量。
-2. 对外 API 变化同时更新 `pkg.generated.mbti`、测试和变更记录。
-3. 每次推送由 GitHub Actions 复现格式检查、接口生成、全目标检查、全目标测试与
-   CLI 冒烟演示。
-4. 不通过拆分空提交或机械改名增加提交数；提交历史必须对应真实工程进展。
+- 只有四后端测试通过的能力才进入“已实现”列表。
+- 底层依赖提供的能力必须明确署名，不能作为 MoonQuery 原创成果。
+- 性能优化未完成前，明确写出稳定插入排序和嵌套循环 Join，不使用“高性能”宣传。
+- 每次提交运行格式检查、接口生成、全目标检查、全目标测试和 CLI 演示。

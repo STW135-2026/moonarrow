@@ -1,8 +1,6 @@
 import {
-  "STW135-2026/moonarrow/src/array",
-  "STW135-2026/moonarrow/src/dataframe",
-  "STW135-2026/moonarrow/src/record_batch",
-  "STW135-2026/moonarrow/src/types",
+  "shunge/arrow",
+  "STW135-2026/moonquery/src/query",
 }
 
 pkgtype(kind: "executable")

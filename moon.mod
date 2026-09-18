@@ -9,22 +9,22 @@
 //   "moonbitlang/x@0.4.6",
 // }
 
-name = "STW135-2026/moonarrow"
+name = "STW135-2026/moonquery"
 
 version = "0.1.0"
 
 readme = "README.md"
 
-repository = "https://github.com/STW135-2026/moonarrow"
+repository = "https://github.com/STW135-2026/moonquery"
 
 license = "Apache-2.0"
 
-keywords = [ "arrow", "columnar", "dataframe", "analytics" ]
+keywords = [ "query", "arrow", "columnar", "analytics", "wasm" ]
 
 preferred_target = "js"
 
-description = "Apache Arrow IPC reader and columnar compute primitives for MoonBit"
+description = "Embeddable columnar query engine for MoonBit and WebAssembly"
 
 import {
-  "moonbitlang/async@0.21.3",
+  "shunge/arrow@0.1.0",
 }

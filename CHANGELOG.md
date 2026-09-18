@@ -1,33 +1,27 @@
 # Changelog
 
-All notable changes to MoonArrow are recorded here.
-
-## Unreleased
+## 0.2.0 — MoonQuery pivot
 
 ### Added
 
-- Nullable `Int64Array` and variable-width `BinaryArray` using Arrow-compatible
-  physical layouts.
-- Int64 and Binary filtering across compute, RecordBatch, and DataFrame layers.
-- Arrow IPC decoding for signed 64-bit integers and binary values.
-- PyArrow 25 interoperability coverage for six logical types.
-- Row previews in the native IPC inspector.
-- Reproducible MVP acceptance checklist and end-to-end CI smoke demos.
-- Negative interoperability tests for truncated streams and invalid UTF-8.
+- Typed composable predicates with three-valued null semantics.
+- Lazy logical query plans with stable explain output.
+- Filter, project, limit and nulls-last stable sort.
+- UTF-8 group by with nullable Int32 SUM and row COUNT.
+- Deterministic inner joins for Boolean, Int32, Int64 and UTF-8 keys.
+- Structured query errors and four-target tests.
+- End-to-end Arrow IPC handoff through `shunge/arrow@0.1.0`.
 
 ### Changed
 
-- Pin fixture generation and documentation to PyArrow 25.0.1.
-- Clarify that IPC reading materializes MoonBit arrays and that writing and
-  zero-copy C Data Interface support are future work.
+- Renamed the project from MoonArrow to MoonQuery.
+- Repositioned the project as a query execution layer above existing Arrow
+  infrastructure.
 
-## 0.1.0 - 2026-09-16
+### Removed
 
-### Added
+- The duplicate IPC, FlatBuffers, bitmap, array and RecordBatch implementations.
+- The PyArrow fixture generator and IPC inspector, which belonged to the old
+  overlapping scope.
 
-- Arrow-style Schema, Field, bitmap, nullable arrays, and RecordBatch types.
-- Columnar filter, take, comparison, and aggregation kernels.
-- Eager DataFrame projection, filtering, limiting, sum, and mean operations.
-- Bounds-checked FlatBuffers metadata reader and Arrow IPC Stream decoder.
-- PyArrow-generated interoperability fixture.
-- Native CLI demos and Native/JS/Wasm/WasmGC test matrix.
+Historical releases remain available through Git history.

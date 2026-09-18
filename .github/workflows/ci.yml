@@ -16,6 +16,4 @@ jobs:
       - run: moon check --target all --deny-warn
       - run: moon test --target all --deny-warn
       - name: Run MVP smoke demos
-        run: |
-          moon run cmd/main
-          moon run cmd/ipc_inspect --target native
+        run: moon run cmd/main --target native
