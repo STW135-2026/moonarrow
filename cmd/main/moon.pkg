@@ -1,6 +1,6 @@
 import {
   "shunge/arrow",
-  "STW135-2026/moonquery/src/query",
+  "STW135-2026/moonsentinel/src/gate",
 }
 
 pkgtype(kind: "executable")

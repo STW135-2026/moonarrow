@@ -1,136 +1,130 @@
-# MoonQuery 项目申报书
+# MoonSentinel 项目申报书
 
-## 一、项目基本信息
+## 一 项目基本信息
 
-- 项目名称：MoonQuery
-- 项目副标题：面向 MoonBit 与 WebAssembly 的嵌入式列式查询引擎
+- 项目名称：MoonSentinel
+- 项目副标题：面向 Arrow 数据的质量与隐私发布门禁
 - 项目负责人：苏天伟
 - 开源许可证：Apache-2.0
-- 代码仓库：<https://github.com/STW135-2026/moonquery>
-- 底层开源依赖：`shunge/arrow@0.1.0`（MIT）
+- 代码仓库：<https://github.com/STW135-2026/moonsentinel>
+- 底层依赖：`shunge/arrow@0.1.0`，MIT 许可证
 
-## 二、项目简介
+## 二 项目简介
 
-MoonQuery 是运行在 Arrow RecordBatch 之上的 MoonBit 查询执行层。它接收由
-`shunge/arrow` 读取或创建的列式数据，通过可组合谓词和逻辑查询计划完成过滤、
-投影、限制、排序、分组聚合及内连接，再把合法的 Arrow RecordBatch 交还给
-`shunge/arrow` 输出为标准 Arrow IPC 数据。
+MoonSentinel 是使用 MoonBit 编写的 Arrow 数据发布门禁。系统接收一个 Arrow RecordBatch 和一组声明式规则，逐行检查质量问题，区分阻断错误与非阻断警告，再生成获准数据、隔离数据和结构化诊断三个 RecordBatch。获准数据还可在交付前替换敏感 UTF-8 字段。
 
-MoonQuery 不实现 IPC Stream/File 编解码、FlatBuffers、Arrow 位图或另一套
-Schema/RecordBatch。这些格式基础设施直接复用现有 `shunge/arrow`，项目代码仅
-聚焦其未覆盖的查询与计算层。
+该项目解决的是数据已经能够交换，但尚不能安全发布的问题。它不提供过滤、排序、分组或连接等通用查询能力，也不实现 Arrow IPC、JSON Schema、Schema 版本治理或迁移计划。
 
-## 三、项目背景和实际价值
+## 三 问题和实际价值
 
-Arrow 解决的是不同语言与系统之间如何交换列式数据，但“能够读取数据”并不等于
-“能够在 MoonBit 中查询数据”。MoonBit 应用在收到数据库、Python 数据工具或
-浏览器端的 Arrow 批次后，仍然需要过滤、选列、排序、分组统计和表关联。
+数据库、Python 数据工具和浏览器应用可以使用 Arrow 交换列式数据，但格式正确并不代表内容可直接发布。真实批次可能包含重复标识、越界年龄、无效枚举、颠倒的上下界、缺失联系方式或未脱敏字段。若每个应用分别编写临时检查逻辑，规则、错误格式和处置方式会逐渐不一致。
 
-MoonQuery 补齐这一层能力，主要面向以下场景：
+MoonSentinel 把这一步收敛为可测试的发布门禁，适用于以下场景：
 
-1. 浏览器离线分析：MoonBit/Wasm 在本地处理 Arrow 数据，无需把敏感数据上传服务端。
-2. 数据库结果后处理：对 Arrow 格式的查询结果继续筛选、聚合或关联小型维表。
-3. ETL 和数据验证：把读取、变换、重新输出连接成可测试的 MoonBit 数据流水线。
-4. MoonBit 数据应用原型：为报表、可视化前处理和嵌入式分析提供统一执行核心。
+1. 数据产品发布。导出数据只有通过质量规则后才能进入报表、下载文件或下游 API。
+2. 浏览器与边缘应用。MoonBit/Wasm 在本地检查 Arrow 数据，错误行不进入后续计算。
+3. AI 数据准备。进入模型或检索流程前，先隔离错误行并替换敏感文本字段。
+4. 数据管道排错。诊断结果仍是 Arrow RecordBatch，可写入 IPC、存档或展示。
 
-## 四、当前已完成且可验证的成果
+## 四 已完成成果
 
-仓库当前版本已经实现并通过自动测试：
+当前代码已经实现并通过自动测试：
 
-- 类型化谓词：Boolean、Int32、Int64、UTF-8 比较。
-- `AND`、`OR`、`NOT` 的 SQL 风格三值逻辑；Filter 只保留结果为 true 的行。
-- 延迟构建、按顺序执行并可输出 Explain 文本的逻辑查询计划。
-- Filter、Project、Limit 和稳定排序，排序时 null 始终置后。
-- UTF-8 key 分组、nullable Int32 的 SUM、每组 COUNT。
-- Boolean、Int32、Int64、UTF-8 key 的内连接；null key 不匹配。
-- Join 输出统一增加 `left.`、`right.` 前缀，避免重名字段产生歧义。
-- 查询错误结构化返回，包括缺失列、重复列、类型错误、非法 limit 和不支持操作。
-- 每个查询算子的结果均通过 `shunge/arrow.RecordBatch::new` 重新校验。
-- 查询结果通过 `shunge/arrow` 写入 Arrow IPC Stream 后再次读取验证。
-- Native、JavaScript、Wasm、Wasm-GC 四个目标的测试。
+- 8 类规则：必需列、非空、Int32 范围、Int64 范围、非空字符串、字符串允许列表、字符串唯一性和 Int32 跨字段顺序。
+- `Error` 与 `Warning` 两级严重度。错误隔离行，警告只进入报告。
+- 缺失列和类型错误作为数据集级问题处理；数据集级错误阻止整个批次放行。
+- 规则按声明顺序执行，行按源顺序检查，结果可复现。
+- 诊断数量可设上限；即使只保留部分诊断，总错误数和警告数仍准确。
+- `release` 同时生成 approved、quarantine 和 findings 三个 Arrow RecordBatch。
+- UTF-8 固定替换只应用于 approved，quarantine 保留原值供受控排查。
+- 合同定义、输入批次和脱敏配置均有结构化错误。
+- 诊断批次可由 `shunge/arrow` 写入 IPC Stream 并重新读取。
+- 7 项测试在 Native、JavaScript、Wasm、Wasm-GC 四个目标上全部通过。
 
-## 五、核心设计
+## 五 核心流程
 
-MoonQuery 把查询分成三个部分：
+MoonSentinel 的处理顺序如下：
 
-1. **数据层**：直接使用 `shunge/arrow` 的 Schema、Column 和 RecordBatch。
-2. **计划层**：Query 保存数据源和有序 QueryStep；构建时不执行，调用 `execute`
-   时按顺序运行；`explain` 输出相同的计划。
-3. **执行层**：各算子生成新的 Arrow 列和 RecordBatch，并在边界重新验证类型、长度
-   和 nullability。
+1. 校验 Arrow RecordBatch 自身的字段数量、列长度、类型和 nullability。
+2. 校验合同名称、规则编号、范围端点、允许列表和规则编号唯一性。
+3. 按规则声明顺序检查 Schema 和行值，并累计错误和警告。
+4. 错误对应的行进入 quarantine；没有错误的行进入 approved。
+5. 只对 approved 执行配置的字段替换脱敏。
+6. 将诊断转换为包含六个字段的 Arrow RecordBatch。
 
-谓词求值使用三值逻辑。例如 `null AND false` 为 false，`null OR true` 为 true，
-其余无法确定的结果仍为 null；Filter 阶段仅选中 true，与 SQL WHERE 行为一致。
+findings 的字段为 `rule_id`、`severity`、`row`、`column`、`code` 和 `message`。其中 `row` 为空表示缺失列或类型不符等数据集级问题。
 
-## 六、与现有 `shunge/arrow` 的互补边界
+## 六 示例结果
 
-`shunge/arrow` 的职责是 Arrow IPC 交换，包括数据结构、Stream/File 读写、格式检查
-和跨语言互操作。MoonQuery 的职责是消费这些 RecordBatch 并执行查询。
+仓库演示构造 4 行客户导出数据，并检查客户编号唯一性、年龄范围、国家允许列表、订单上下界和邮件完整性。实际运行结果为：
 
-| 范围 | `shunge/arrow` | MoonQuery |
-| --- | --- | --- |
-| Arrow 数据结构 | 实现并维护 | 直接依赖 |
-| IPC 读写 | 实现并维护 | 不实现 |
-| FlatBuffers/位图 | 实现并维护 | 不实现 |
-| Filter/Project/Limit | 不负责 | 已实现 |
-| 三值逻辑谓词 | 不负责 | 已实现 |
-| Sort | 不负责 | 已实现 |
-| Group By/SUM/COUNT | 不负责 | 已实现 |
-| Join | 不负责 | 已实现 |
-| Query Plan/Explain | 不负责 | 已实现 |
-
-代码级证据包括：`moon.mod` 明确依赖 `shunge/arrow@0.1.0`；生产代码只有
-`src/query`；仓库不存在自研 IPC、FlatBuffers、位图、Arrow Schema 或
-RecordBatch 实现。两者是“交换层 → 查询层”的依赖关系，而不是两个同类库。
-
-## 七、可运行演示
-
-演示构造包含区域、商品、销量、收入和状态的 Arrow RecordBatch，然后执行：
-
-1. 筛选 `units > 2 AND active IS TRUE`；
-2. 按 region 分组；
-3. 计算 revenue 的 SUM 和每组 COUNT；
-4. 按 revenue_sum 降序排列；
-5. 取前三行；
-6. 由 `shunge/arrow` 写成 Arrow IPC 并重新读回。
+```text
+customer-export-v1: FAIL; rows=4; accepted=1; quarantined=3; errors=7; warnings=1; findings_shown=8; truncated=false
+approved rows: 1
+quarantined rows: 3
+diagnostic rows: 8
+approved email: [REDACTED]
+```
 
 运行命令：
 
 ```sh
 moon update
+moon fmt --check
 moon check --target all --deny-warn
 moon test --target all --deny-warn
-moon run cmd/main --target native
+moon run cmd/main --target native --deny-warn
 ```
 
-## 八、创新点
+## 七 与现有项目的差异
 
-1. 在 MoonBit 生态中把 Arrow “数据交换能力”推进到“可组合查询能力”。
-2. 查询计划可解释、可复现，便于在浏览器/Wasm 和原生程序中使用同一套语义。
-3. 从第一版就处理 null、类型错误、字段冲突和结果批次校验，而不是只演示正常输入。
-4. 通过明确依赖现有模块形成生态协作，避免重复实现和分裂基础数据格式。
+| 对比项目 | 已有能力 | MoonSentinel 的边界 |
+| --- | --- | --- |
+| `shunge/arrow` | Arrow 数据结构、IPC Stream/File、互操作 | 使用其 RecordBatch；新增发布判定、隔离、诊断和脱敏 |
+| MoonFrame | DataFrame、表达式、查询、分组、连接和惰性执行 | 不做查询；处理数据质量和发布处置 |
+| `moon-data-contract` | Schema 治理、演进、兼容性、迁移和发布规则 | 不管理 Schema 版本；检查实际批次内容并拆分行 |
+| `moonbit-jsonschema` | 按 JSON Schema 验证 JSON | 不解析 JSON Schema；直接处理 Arrow 列 |
+| MoonJQ | JSON 查询语言和解释执行 | 不提供查询语言；诊断和输出均为 Arrow 原生结构 |
 
-## 九、原创边界
+初版 MoonQuery 曾实现过滤、排序、分组、连接和逻辑计划。核查 MoonFrame 后确认该方向重合度过高，因此当前代码树已移除整个查询包，转为独立的运行时发布门禁。该调整保留在 Git 历史中，便于审查。
 
-MoonQuery 的查询计划、谓词语义、算子实现、错误模型、测试和演示均位于本仓库。
-Arrow 格式、Schema、Column、RecordBatch 及 IPC 编解码来自公开依赖
-`shunge/arrow`，不作为本项目原创成果申报。仓库保留 Git 历史，能够核查项目从
-早期探索到重新划定边界的过程。
+## 八 创新和应用特点
 
-## 十、当前限制与后续路线
+1. 门禁直接接收和返回 Arrow RecordBatch，获准数据、隔离数据和诊断数据使用同一种交换格式。
+2. 质量判定与处置合并在一次调用中，调用方无需再次根据错误列表手工筛行。
+3. 诊断收集有明确上限，但统计不丢失，避免异常批次产生无界内存开销。
+4. 脱敏只作用于获准数据，既防止敏感数据进入下游，也保留隔离数据的排错价值。
+5. 数据集级错误和行级错误使用同一报告模型，可统一存档和展示。
 
-当前 MVP 为保证行为可验证，稳定排序使用插入排序，Join 使用嵌套循环；尚未声称
-针对大数据量优化。分组聚合目前限定 UTF-8 key 与 Int32 SUM/COUNT。项目尚未实现
-SQL 文本解析、成本优化、并行执行、磁盘溢写、窗口函数或流式增量查询。
+## 九 原创和依赖边界
 
-下一阶段将优先增加通用标量表达式、更多聚合、哈希聚合与哈希 Join，并使用可复现
-基准验证性能；只有完成和测试通过的能力才会写入已实现清单。
+本仓库实现合同校验、规则执行、严重度语义、诊断上限、行隔离、脱敏策略、Arrow 诊断输出、测试和演示。Arrow Schema、Column、RecordBatch 以及 IPC 编解码来自公开依赖 `shunge/arrow`，不作为本项目原创成果申报。
 
-## 十一、验收标准
+当前生产代码仅位于 `src/gate`，没有 DataFrame、查询计划、IPC、FlatBuffers、位图、JSON Schema 或 Schema 迁移实现。旧版探索代码只存在于 Git 历史，不属于当前交付物。
 
-1. `moon check --target all --deny-warn` 无编译错误和警告。
-2. `moon test --target all --deny-warn` 四后端全部通过。
-3. CLI 能打印逻辑计划和正确聚合结果。
-4. CLI 能把结果写成 Arrow IPC 并用同一公开依赖重新读取。
-5. 仓库生产代码不存在与 `shunge/arrow` 重复的 IPC/FlatBuffers/位图实现。
-6. README、申报书、差异化说明和实际代码保持一致。
+## 十 当前限制
+
+- 规则面向单个 RecordBatch，尚未提供跨批次唯一性和时间窗口状态。
+- `Utf8Unique` 使用确定性双循环，适合 MVP 和中小批次，尚未进行哈希优化。
+- 字符串规则尚未提供正则表达式和长度范围。
+- 脱敏目前是固定字符串替换，尚未提供哈希、部分保留或外部密钥服务。
+- 输入输出格式仍由 `shunge/arrow@0.1.0` 的类型和 IPC 支持范围决定。
+
+## 十一 后续路线
+
+1. 增加字符串长度、模式、数值集合和条件规则。
+2. 为唯一性规则增加确定性哈希索引，并建立不同批次规模的基准。
+3. 增加电子邮件、手机号等可组合脱敏策略，同时避免在诊断文本中泄露原值。
+4. 支持多批次审计汇总和可配置的失败阈值。
+5. 构建浏览器演示界面，展示获准、隔离和诊断三个 Arrow 输出。
+
+## 十二 验收标准
+
+1. `moon fmt --check` 通过。
+2. `moon check --target all --deny-warn` 无错误和警告。
+3. `moon test --target all --deny-warn` 在四个目标上全部通过。
+4. 演示能生成 approved、quarantine 和 findings，并显示准确计数。
+5. approved 的敏感字段已替换，quarantine 保持原始值。
+6. findings 可写入 Arrow IPC 并重新读取。
+7. 当前生产代码不包含 DataFrame、查询引擎或 Arrow IPC 的重复实现。
+8. README、申报书、差异化说明和代码行为一致。

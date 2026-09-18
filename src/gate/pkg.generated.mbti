@@ -1,0 +1,105 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "STW135-2026/moonsentinel/src/gate"
+
+import {
+  "moonbitlang/core/debug",
+  "shunge/arrow",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub struct AuditReport {
+  contract_name : String
+  source_rows : Int
+  error_count_value : Int
+  warning_count_value : Int
+  findings_value : Array[Finding]
+  truncated_value : Bool
+  accepted_indices : Array[Int]
+  rejected_indices : Array[Int]
+}
+pub fn AuditReport::accepted_row_count(Self) -> Int
+pub fn AuditReport::error_count(Self) -> Int
+pub fn AuditReport::findings(Self) -> Array[Finding]
+pub fn AuditReport::findings_batch(Self) -> Result[@arrow.RecordBatch, GateError]
+pub fn AuditReport::issue_count(Self) -> Int
+pub fn AuditReport::passed(Self) -> Bool
+pub fn AuditReport::rejected_row_count(Self) -> Int
+pub fn AuditReport::source_row_count(Self) -> Int
+pub fn AuditReport::summary(Self) -> String
+pub fn AuditReport::truncated(Self) -> Bool
+pub fn AuditReport::warning_count(Self) -> Int
+
+pub struct Contract {
+  name : String
+  rules : Array[Rule]
+  max_findings : Int
+}
+pub fn Contract::audit(Self, @arrow.RecordBatch) -> Result[AuditReport, GateError]
+pub fn Contract::name(Self) -> String
+pub fn Contract::new(String, Array[Rule], max_findings? : Int) -> Result[Self, GateError]
+pub fn Contract::release(Self, @arrow.RecordBatch, redactions? : Array[Redaction]) -> Result[ReleaseBundle, GateError]
+
+pub(all) struct Finding {
+  rule_id : String
+  severity : Severity
+  row : Int?
+  column : String?
+  code : FindingCode
+  message : String
+} derive(Eq, @debug.Debug)
+
+pub(all) enum FindingCode {
+  MissingColumn
+  TypeMismatch
+  NullValue
+  OutOfRange
+  EmptyValue
+  NotAllowed
+  DuplicateValue
+  CrossFieldOrder
+} derive(Eq, @debug.Debug)
+
+pub(all) enum GateError {
+  InvalidContract(String)
+  InvalidBatch
+  InvalidRedaction(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Redaction {
+  ReplaceUtf8(String, String)
+} derive(Eq, @debug.Debug)
+
+pub struct ReleaseBundle {
+  report_value : AuditReport
+  approved_value : @arrow.RecordBatch
+  quarantine_value : @arrow.RecordBatch
+  findings_value : @arrow.RecordBatch
+}
+pub fn ReleaseBundle::approved(Self) -> @arrow.RecordBatch
+pub fn ReleaseBundle::findings(Self) -> @arrow.RecordBatch
+pub fn ReleaseBundle::quarantine(Self) -> @arrow.RecordBatch
+pub fn ReleaseBundle::report(Self) -> AuditReport
+
+pub(all) enum Rule {
+  RequiredColumn(String, String, @arrow.DataType, Severity)
+  NotNull(String, String, Severity)
+  Int32Range(String, String, Int?, Int?, Severity)
+  Int64Range(String, String, Int64?, Int64?, Severity)
+  Utf8NonEmpty(String, String, Severity)
+  Utf8Allowed(String, String, Array[String], Severity)
+  Utf8Unique(String, String, Severity)
+  Int32LessOrEqual(String, String, String, Severity)
+} derive(@debug.Debug)
+
+pub(all) enum Severity {
+  Warning
+  Error
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

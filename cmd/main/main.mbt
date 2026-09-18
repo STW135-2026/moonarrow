@@ -1,84 +1,84 @@
 ///|
-fn option_string_text(value : String?) -> String {
-  match value {
-    Some(text) => text
-    None => "null"
-  }
+fn source_batch() -> @arrow.RecordBatch {
+  let schema = @arrow.Schema::new([
+    @arrow.Field::new("customer_id", @arrow.Utf8, nullable=false),
+    @arrow.Field::new("age", @arrow.Int32),
+    @arrow.Field::new("min_order", @arrow.Int32),
+    @arrow.Field::new("max_order", @arrow.Int32),
+    @arrow.Field::new("country", @arrow.Utf8),
+    @arrow.Field::new("email", @arrow.Utf8),
+  ])
+  try! @arrow.RecordBatch::new(schema, [
+    @arrow.Strings([Some("c-1"), Some("c-2"), Some("c-2"), Some("c-4")]),
+    @arrow.Int32s([Some(32), Some(-1), Some(45), None]),
+    @arrow.Int32s([Some(10), Some(30), Some(90), Some(5)]),
+    @arrow.Int32s([Some(100), Some(20), Some(80), Some(30)]),
+    @arrow.Strings([Some("CN"), Some("US"), Some("FR"), Some("CN")]),
+    @arrow.Strings([
+      Some("one@example.com"),
+      Some("two@example.com"),
+      None,
+      Some("four@example.com"),
+    ]),
+  ])
 }
 
 ///|
-fn option_int64_text(value : Int64?) -> String {
-  match value {
-    Some(number) => number.to_string()
-    None => "null"
-  }
+fn contract() -> @gate.Contract {
+  @gate.Contract::new("customer-export-v1", [
+    @gate.RequiredColumn(
+      "schema.customer_id",
+      "customer_id",
+      @arrow.Utf8,
+      @gate.Error,
+    ),
+    @gate.NotNull("quality.customer_id.required", "customer_id", @gate.Error),
+    @gate.Utf8Unique("quality.customer_id.unique", "customer_id", @gate.Error),
+    @gate.NotNull("quality.age.required", "age", @gate.Error),
+    @gate.Int32Range(
+      "quality.age.range",
+      "age",
+      Some(0),
+      Some(120),
+      @gate.Error,
+    ),
+    @gate.Utf8Allowed(
+      "quality.country.allowlist",
+      "country",
+      ["CN", "US"],
+      @gate.Error,
+    ),
+    @gate.Int32LessOrEqual(
+      "quality.order.bounds",
+      "min_order",
+      "max_order",
+      @gate.Error,
+    ),
+    @gate.NotNull("quality.email.recommended", "email", @gate.Warning),
+  ]).unwrap()
 }
 
 ///|
 fn main {
-  let schema = @arrow.Schema::new([
-    @arrow.Field::new("region", @arrow.Utf8),
-    @arrow.Field::new("product", @arrow.Utf8, nullable=false),
-    @arrow.Field::new("units", @arrow.Int32),
-    @arrow.Field::new("revenue", @arrow.Int32),
-    @arrow.Field::new("active", @arrow.Boolean),
-  ])
-  let source = try! @arrow.RecordBatch::new(schema, [
-    @arrow.Strings([
-      Some("East"),
-      Some("West"),
-      Some("East"),
-      Some("North"),
-      None,
-    ]),
-    @arrow.Strings([Some("A"), Some("B"), Some("C"), Some("D"), Some("E")]),
-    @arrow.Int32s([Some(4), Some(2), Some(7), Some(1), Some(8)]),
-    @arrow.Int32s([Some(120), Some(80), Some(200), Some(40), None]),
-    @arrow.Booleans([
-      Some(true),
-      Some(true),
-      Some(true),
-      Some(false),
-      Some(true),
-    ]),
-  ])
-  let query = @query.Query::scan(source)
-    .filter(
-      @query.Int32GreaterThan("units", 2).and_also(@query.BoolIsTrue("active")),
-    )
-    .group_by_utf8_sum_int32(
-      "region",
-      "revenue",
-      sum_alias="revenue_sum",
-      count_alias="orders",
-    )
-    .sort_by("revenue_sum", descending=true)
-    .limit(3)
-  println("MoonQuery logical plan")
-  println(query.explain())
-  let result = query.execute().unwrap()
-  println("\nResult rows: \{result.num_rows}")
-  match (result.columns[0], result.columns[1], result.columns[2]) {
-    (
-      @arrow.Strings(regions),
-      @arrow.Int64s(revenue_sums),
-      @arrow.Int64s(order_counts),
-    ) =>
-      for row in 0..<result.num_rows {
-        println(
-          "  region=" +
-          option_string_text(regions[row]) +
-          ", revenue_sum=" +
-          option_int64_text(revenue_sums[row]) +
-          ", orders=" +
-          option_int64_text(order_counts[row]),
-        )
-      }
-    _ => println("unexpected result schema")
+  let bundle = contract()
+    .release(source_batch(), redactions=[
+      @gate.ReplaceUtf8("email", "[REDACTED]"),
+    ])
+    .unwrap()
+  println("MoonSentinel release gate")
+  println(bundle.report().summary())
+  println("approved rows: \{bundle.approved().num_rows}")
+  println("quarantined rows: \{bundle.quarantine().num_rows}")
+  println("diagnostic rows: \{bundle.findings().num_rows}")
+  match bundle.approved().columns[5] {
+    @arrow.Strings(values) => println("approved email: \{values[0].unwrap()}")
+    _ => println("unexpected email column")
   }
-  let ipc = try! @arrow.write_stream(result.schema, [result])
-  let restored = try! @arrow.read_stream(ipc)
+  let bytes = try! @arrow.write_stream(bundle.approved().schema, [
+    bundle.approved(),
+  ])
+  let restored = try! @arrow.read_stream(bytes)
   println(
-    "\nArrow IPC handoff supplied by shunge/arrow: \{ipc.length()} bytes, \{restored.batches[0].num_rows} rows",
+    "Arrow IPC handoff: \{bytes.length()} bytes, \{restored.batches[0].num_rows} approved row",
   )
 }

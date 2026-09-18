@@ -1,98 +1,109 @@
-# MoonQuery
+# MoonSentinel
 
-[![CI](https://github.com/STW135-2026/moonquery/actions/workflows/ci.yml/badge.svg)](https://github.com/STW135-2026/moonquery/actions/workflows/ci.yml)
+[![CI](https://github.com/STW135-2026/moonsentinel/actions/workflows/ci.yml/badge.svg)](https://github.com/STW135-2026/moonsentinel/actions/workflows/ci.yml)
 
-**面向 MoonBit 与 WebAssembly 的嵌入式列式查询引擎。**
+MoonSentinel 是面向 MoonBit 的 Arrow 数据发布门禁。它在数据进入分析、浏览器应用或 AI 工作流前执行确定性的质量规则，将合法行、隔离行和结构化诊断分别输出为 Arrow RecordBatch，并可在放行前脱敏 UTF-8 敏感列。
 
-MoonQuery 在 [`shunge/arrow`](https://mooncakes.io/docs/shunge/arrow) 提供的
-Arrow 数据结构和 IPC 读写能力之上，增加查询表达式、逻辑计划和数据变换能力。
-本项目不实现另一套 Arrow IPC、FlatBuffers、位图或 RecordBatch 容器。
+项目直接使用 [`shunge/arrow@0.1.0`](https://mooncakes.io/docs/shunge/arrow@0.1.0) 的 Schema、Column、RecordBatch 和 IPC 能力，不实现 DataFrame、查询引擎、Arrow IPC、JSON Schema 或 Schema 版本管理。
 
 ## 已实现
 
-- 可组合的类型化谓词，以及 SQL 风格三值逻辑。
-- 延迟构建、显式执行并可 `explain` 的查询计划。
-- Filter、Project、Limit 与稳定排序（null 始终置后）。
-- UTF-8 分组、Int32 `SUM` 和行数 `COUNT`。
-- Boolean、Int32、Int64、UTF-8 键的确定性内连接；null 键不匹配。
-- 结构化查询错误和每个算子输出的 Arrow RecordBatch 重新校验。
-- 通过 `shunge/arrow` 完成查询结果的 Arrow IPC 输出与回读。
-- Native、JavaScript、Wasm、Wasm-GC 四后端测试。
+- 8 类声明式规则：必需列、非空、Int32/Int64 范围、非空字符串、字符串允许列表、字符串唯一性和 Int32 跨字段顺序。
+- `Error` 与 `Warning` 两级结果。错误隔离对应行；数据集级错误隔离整个批次；警告只记录，不阻断放行。
+- 确定性执行顺序和有上限的诊断收集。即使诊断被截断，错误数和警告数仍保持准确。
+- 一次 `release` 生成 approved、quarantine 和 findings 三个 Arrow RecordBatch。
+- 仅对 approved 数据应用 UTF-8 替换脱敏，quarantine 保留原值用于受控排查。
+- 合同、输入批次和脱敏策略的结构化错误处理。
+- Native、JavaScript、Wasm、Wasm-GC 四后端检查与测试。
 
 ## 三分钟验证
 
 ```sh
 moon update
+moon fmt --check
 moon check --target all --deny-warn
 moon test --target all --deny-warn
-moon run cmd/main --target native
+moon run cmd/main --target native --deny-warn
 ```
 
-演示会打印以下逻辑计划，并执行真实查询：
+当前演示使用 4 行客户导出数据，运行唯一性、年龄范围、国家允许列表、订单上下界和邮件完整性规则。实际输出为：
 
 ```text
-0: Scan ArrowRecordBatch(rows=5, columns=5)
-1: Filter (col("units") > 2) AND (col("active") IS TRUE)
-2: GroupBy region; SUM(revenue) AS revenue_sum; COUNT(*) AS orders
-3: Sort revenue_sum DESC NULLS LAST
-4: Limit 3
+MoonSentinel release gate
+customer-export-v1: FAIL; rows=4; accepted=1; quarantined=3; errors=7; warnings=1; findings_shown=8; truncated=false
+approved rows: 1
+quarantined rows: 3
+diagnostic rows: 8
+approved email: [REDACTED]
 ```
-
-最后由 `shunge/arrow` 把结果写成 Arrow IPC Stream 并重新读取，形成端到端验证。
 
 ## 使用示例
 
 ```mbt
-let result = @query.Query::scan(batch)
-  .filter(
-    @query.Int32GreaterThan("units", 2).and_also(
-      @query.BoolIsTrue("active"),
-    ),
-  )
-  .group_by_utf8_sum_int32(
-    "region",
-    "revenue",
-    sum_alias="revenue_sum",
-    count_alias="orders",
-  )
-  .sort_by("revenue_sum", descending=true)
-  .limit(10)
-  .execute()
-  .unwrap()
+let contract = @gate.Contract::new("customer-export-v1", [
+  @gate.RequiredColumn(
+    "schema.customer_id",
+    "customer_id",
+    @arrow.Utf8,
+    @gate.Error,
+  ),
+  @gate.NotNull(
+    "quality.customer_id.required",
+    "customer_id",
+    @gate.Error,
+  ),
+  @gate.Utf8Unique(
+    "quality.customer_id.unique",
+    "customer_id",
+    @gate.Error,
+  ),
+  @gate.Int32Range(
+    "quality.age.range",
+    "age",
+    Some(0),
+    Some(120),
+    @gate.Error,
+  ),
+]).unwrap()
+
+let bundle = contract.release(
+  batch,
+  redactions=[@gate.ReplaceUtf8("email", "[REDACTED]")],
+).unwrap()
+
+let approved = bundle.approved()
+let quarantine = bundle.quarantine()
+let findings = bundle.findings()
 ```
 
-## 与 `shunge/arrow` 的边界
+findings 批次包含 `rule_id`、`severity`、`row`、`column`、`code` 和 `message`，可直接写入 Arrow IPC、交给审计系统或在前端展示。
 
-| 能力 | `shunge/arrow` | MoonQuery |
+## 与现有项目的边界
+
+| 项目 | 已有职责 | MoonSentinel 的职责 |
 | --- | --- | --- |
-| Arrow Schema、Column、RecordBatch | 提供 | 直接使用 |
-| IPC Stream/File 读写 | 提供 | 直接调用 |
-| 格式校验与解析预算 | 提供 | 不重复实现 |
-| 查询谓词和三值逻辑 | 不负责 | 提供 |
-| Filter/Project/Limit/Sort | 不负责 | 提供 |
-| Group By 和聚合 | 不负责 | 提供 |
-| Join | 不负责 | 提供 |
-| 逻辑计划与 Explain | 不负责 | 提供 |
+| [`shunge/arrow`](https://mooncakes.io/docs/shunge/arrow@0.1.0) | Arrow 数据结构、IPC Stream/File 和互操作 | 消费 RecordBatch，执行发布门禁并产出新的 RecordBatch |
+| [`MoonFrame`](https://github.com/ihb2032/MoonFrame) | DataFrame、表达式、过滤、排序、分组、连接和惰性查询 | 不提供查询算子；负责质量判定、隔离、诊断和脱敏 |
+| [`moon-data-contract`](https://mooncakes.io/docs/lyjttio/moon-data-contract@0.2.1) | Schema 治理、版本演进、兼容性和迁移计划 | 不管理 Schema 版本；检查批次中的实际行并执行放行决策 |
+| [`moonbit-jsonschema`](https://mooncakes.io/docs/Xu107-hhh/moonbit-jsonschema) | JSON Schema 验证 | 不解析 JSON Schema；面向 Arrow 列和行 |
+| [`MoonJQ`](https://github.com/moonbit-community/moonbit-jq) | JSON 查询解释器 | 不查询 JSON；输出 Arrow 原生审计结果 |
 
-更完整的代码级证据见[差异化说明](docs/DIFFERENTIATION.zh-CN.md)。
+旧版 MoonQuery 查询引擎因与 MoonFrame 的功能范围重合，已经从当前代码树移除。Git 历史完整保留这次边界调整。
 
 ## 当前边界
 
-- 当前排序使用稳定插入排序，内连接使用确定性嵌套循环；MVP 先验证语义正确性，
-  尚未声称适合大规模数据。
-- 分组聚合当前为 UTF-8 key + Int32 value 的 `SUM`/`COUNT`。
-- 当前未实现 SQL 文本解析、查询优化器、并行执行、磁盘溢写或流式增量执行。
-- Arrow 类型和 IPC 支持范围由锁定的 `shunge/arrow@0.1.0` 决定。
+- 当前规则以可审计的基础约束为主，还没有正则表达式、条件规则或跨批次状态。
+- `Utf8Unique` 在单个 RecordBatch 内检查，采用确定性双循环，MVP 优先保证语义和可复现性。
+- 脱敏目前提供 UTF-8 固定替换；哈希、部分保留和密钥托管不在当前版本中。
+- 数据读取和写出由 `shunge/arrow` 负责；MoonSentinel 不重复实现 IPC。
 
 ## 文档
 
 - [项目申报书](docs/PROPOSAL.zh-CN.md)
-- [差异化与互补边界](docs/DIFFERENTIATION.zh-CN.md)
-- [架构](docs/ARCHITECTURE.md)
-- [验收清单](docs/MVP-CHECKLIST.zh-CN.md)
-- [演示脚本](docs/DEMO.zh-CN.md)
-- [路线图](docs/ROADMAP.md)
+- [差异化核查](docs/DIFFERENTIATION.zh-CN.md)
+- [技术架构](docs/ARCHITECTURE.md)
+- [演示步骤](docs/DEMO.zh-CN.md)
 
 ## 许可证
 
-Apache-2.0。`shunge/arrow` 是独立的 MIT 许可依赖，来源和职责在文档中明确标注。
+Apache-2.0。`shunge/arrow` 是独立的 MIT 许可依赖。
