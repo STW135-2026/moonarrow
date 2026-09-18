@@ -4,7 +4,7 @@
 
 - 项目名称：MoonSentinel
 - 项目副标题：面向 Arrow 数据的质量与隐私发布门禁
-- 项目负责人：苏天伟
+- 项目负责人：苏天纬
 - 开源许可证：Apache-2.0
 - 代码仓库：<https://github.com/STW135-2026/moonsentinel>
 - 底层依赖：`shunge/arrow@0.1.0`，MIT 许可证
